@@ -12,6 +12,18 @@ Docker, works offline, and installs to your phone as a PWA.
 
 ---
 
+## Screenshots
+
+The **Library** — your whole collection, searchable, filterable and sortable:
+
+![Library view showing a grid of book cards](docs/screenshots/library.png)
+
+A book's **Detail** page — the complete record, with copies, locations and one-click actions:
+
+![Detail view of a single book](docs/screenshots/detail.png)
+
+---
+
 ## Features
 
 - **Catalogue** physical copies and e-books in one place (a Work → Edition → Copy model, so
