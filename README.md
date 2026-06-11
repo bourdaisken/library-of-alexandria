@@ -113,7 +113,24 @@ The app keeps everything on your own machine. Please review
 [SECURITY.md](SECURITY.md) for how to report a vulnerability. You are encouraged to read the
 source and verify it before trusting it with your data.
 
+## Third-party services
+
+Optional metadata-lookup features query external services (OpenLibrary, Google Books,
+national-library catalogues, and others). These are **opt-in** — nothing is fetched during
+import or normal use unless you ask for it. You are responsible for complying with the terms
+of service of any provider you choose to query, and for supplying your own API keys/tokens
+where required.
+
 ## License
 
 Personal, non-commercial, home use only. See [LICENSE](LICENSE). For any other use, contact
 **Konstantinos Bonikos &lt;k.bonikos@protonmail.ch&gt;**.
+
+## Acknowledgements
+
+I used the **Book Catalogue** app for many years — it kept me and my collection sane, and
+it's what inspired me to build this. Kudos to **Evan Leybourn** for blazing this trail — you
+sir, are a legend! → https://github.com/eleybourn/Book-Catalogue
+
+*This is an independent project. It is not affiliated with, endorsed by, or derived from the
+code of Book Catalogue (which is licensed GPL-3.0); it shares no source code with it.*
