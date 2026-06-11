@@ -22,6 +22,10 @@ A book's **Detail** page — the complete record, with copies, locations and one
 
 ![Detail view of a single book](docs/screenshots/detail.png)
 
+The built-in **3D shelf map** shows exactly where a book lives (here, shelf 30 is highlighted):
+
+![3D library map with a highlighted shelf](docs/screenshots/map.png)
+
 ---
 
 ## Features
