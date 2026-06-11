@@ -2,7 +2,7 @@
 Offline importer: MASTER CSV -> 3-tier model in Postgres.
 
 No network. Idempotent on Copy.legacy_book_uuid (re-running updates, never duplicates).
-Implements the explode -> dedup-upward pipeline from IMPORT_PLAN.md:
+Implements an explode -> dedup-upward pipeline:
   each row -> one Copy -> its Edition (dedup by ISBN) -> its Work (dedup by author+title).
 
 The 22 repeated ISBNs collapse to one Edition with multiple Copies (expected).

@@ -2,7 +2,7 @@
 3-tier WEMI data model: Work -> Edition -> Copy, plus contributors, series, tags,
 reading sessions, loans, wishlist, users, and the enrichment-proposal tables.
 
-See DATA_MODEL.md for the conceptual model and the Book-Catalogue column mapping.
+The 3-tier WEMI data model (Work -> Edition -> Copy).
 """
 from __future__ import annotations
 
