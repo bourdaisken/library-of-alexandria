@@ -1,0 +1,16 @@
+Flask>=3.0
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+requests>=2.31
+ftfy>=6.3
+python-dotenv>=1.0
+gunicorn>=21.2
+pytest>=8.0
+# barcode decode from photo (server-side, robust to rotation/framing)
+Pillow>=10.0
+numpy>=1.26
+zxing-cpp>=2.2
+# embedded e-book metadata extraction (folder-scan importer; MOBI/FB2/comics are dep-free)
+ebooklib>=0.18
+pypdf>=4.0
+python-docx>=1.1

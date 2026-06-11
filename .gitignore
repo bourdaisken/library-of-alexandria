@@ -1,0 +1,23 @@
+# --- secrets (NEVER commit) ---
+.env
+
+# --- database backups / dumps ---
+backups/
+*.sql
+
+# --- your data (keep local) ---
+ebooks/
+data/*.csv
+data/*.bcbk
+
+# --- python / tooling ---
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+
+# --- editor / OS ---
+.DS_Store
+*~
+*.bak

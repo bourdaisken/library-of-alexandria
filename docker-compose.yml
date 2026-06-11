@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-loa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loa}
+      POSTGRES_DB: ${POSTGRES_DB:-loa}
+      # Guarantee a UTF-8 cluster (so accented / non-Latin text is never corrupted).
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C.UTF-8"
+      LANG: C.UTF-8
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"   # database reachable from this host only
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loa} -d ${POSTGRES_DB:-loa}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: ./backend
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://loa:loa@db:5432/loa}
+      DATA_DIR: /data
+      SECRET_KEY: ${SECRET_KEY:-}
+      # The e-book folder is chosen inside the app (Admin -> E-book folder) and stored in the
+      # database. EBOOKS_DIR is only an optional initial fallback. BROWSE_ROOTS bounds where
+      # the in-app folder picker / scanner / renamer may go (everything stays inside these).
+      EBOOKS_DIR: ${EBOOKS_DIR:-}
+      BROWSE_ROOTS: ${BROWSE_ROOTS:-/media}
+      DEFAULT_CURRENCY: ${DEFAULT_CURRENCY:-GBP}
+      GOOGLE_BOOKS_API_KEY: ${GOOGLE_BOOKS_API_KEY:-}
+      LIBRARYTHING_TALPA_TOKEN: ${LIBRARYTHING_TALPA_TOKEN:-}
+      PYTHONUTF8: "1"
+      LANG: C.UTF-8
+    volumes:
+      - ./backend:/app
+      - ./data:/data:ro           # optional: put a CSV/backup here to import it
+      # Your e-book library, mounted READ-WRITE so the "E-book Metadata Quality" tab can
+      # rename files (and re-point the catalog). The catalog scanner itself only reads.
+      # Defaults to a local ./ebooks folder; point MEDIA_HOST_DIR at your own library.
+      - type: bind
+        source: ${MEDIA_HOST_DIR:-./ebooks}
+        target: /media
+        bind:
+          propagation: rslave
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      # Bind to localhost by default. To reach it from other devices on a trusted network,
+      # set LOA_BIND_IP in .env (e.g. a LAN/VPN address) or put it behind a reverse proxy.
+      - "${LOA_BIND_IP:-127.0.0.1}:${LOA_PORT:-5001}:5000"
+    command: ["gunicorn", "-b", "0.0.0.0:5000", "-w", "2", "-k", "gthread", "--threads", "4", "app:create_app()"]
+
+volumes:
+  db_data:

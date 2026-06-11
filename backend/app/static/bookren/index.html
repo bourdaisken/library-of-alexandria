@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BookRen</title>
+
+  <!-- Favicons — the icon that appears in browser tabs and bookmarks.
+       We supply multiple sizes because different devices and contexts need
+       different resolutions:
+         favicon.ico     — legacy fallback, contains 16/32/48px in one file
+         favicon.svg     — modern browsers prefer SVG (scales perfectly)
+         favicon-32.png  — standard tab icon
+         favicon-180.png — Apple devices (home screen icon)
+         favicon-192.png — Android home screen
+         favicon-512.png — PWA splash screen
+  -->
+  <link rel="icon" href="/static/bookren/favicon.ico" sizes="any">
+  <link rel="icon" href="/static/bookren/favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/bookren/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/static/bookren/favicon-180.png">
+  <link rel="manifest" href="/static/bookren/site.webmanifest">
+  <!-- Follow the app's chosen skin (same-origin: shares the loa-skin tokens + setting). -->
+  <link rel="stylesheet" href="/static/css/fonts.css">
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <script>
+    (function () {
+      try { document.documentElement.setAttribute("data-theme", localStorage.getItem("loa-skin") || "cupertino"); }
+      catch (e) { document.documentElement.setAttribute("data-theme", "cupertino"); }
+    })();
+  </script>
+  <style>
+    /* BookRen's palette, remapped onto the active skin's tokens (tokens.css).
+       --bg / --text / --accent are intentionally NOT redefined here so they
+       inherit the chosen skin; the rest map to the skin's token names. */
+    :root {
+      --panel: var(--surface);
+      --panel-alt: var(--surface-2);
+      --border: var(--line);
+      --border-hi: var(--line-strong);
+      --accent-hi: var(--accent-2, var(--accent));
+      --accent-dim: var(--accent-soft);
+      --text-dim: var(--muted);
+      --text-mid: var(--text-2);
+      --success: var(--ok, #4db882);
+      --warn: #e8a23a;
+      --error: var(--err, #e05c5c);
+      --radius: var(--r-ctl, 6px);
+      --radius-sm: var(--r-chip, 4px);
+      --font: var(--font-ui, system-ui, -apple-system, "Segoe UI", sans-serif);
+      --mono: var(--font-meta, "SF Mono", "Fira Code", monospace);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--font);background:var(--bg);color:var(--text);
+         height:100vh;display:grid;grid-template-rows:auto 1fr;overflow:hidden;font-size:14px}
+
+    /* topbar */
+    .topbar{background:var(--panel);border-bottom:1px solid var(--border);
+            padding:0 14px;height:46px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .logo{font-size:.9rem;font-weight:700;color:var(--accent);letter-spacing:.06em;user-select:none}
+    .topbar-sep{width:1px;height:22px;background:var(--border);flex-shrink:0}
+    .tpl-row{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+    .tpl-row label{font-size:.7rem;color:var(--text-dim);white-space:nowrap}
+    #templateInput{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+                   color:var(--text);padding:5px 9px;border-radius:var(--radius-sm);
+                   font-size:.78rem;font-family:var(--mono)}
+    #templateInput:focus{outline:none;border-color:var(--accent)}
+    #presetSelect{background:var(--bg);border:1px solid var(--border);color:var(--text);
+                  padding:5px 26px 5px 9px;border-radius:var(--radius-sm);font-size:.78rem;
+                  cursor:pointer;appearance:none;
+                  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a8499'/%3E%3C/svg%3E");
+                  background-repeat:no-repeat;background-position:right 8px center}
+    #presetSelect:focus{outline:none;border-color:var(--accent)}
+
+    /* main layout */
+    .main{display:grid;grid-template-columns:260px minmax(0,1fr) 300px;overflow:hidden;min-height:0}
+
+    /* left panel */
+    .left-panel{background:var(--panel);border-right:1px solid var(--border);
+                display:flex;flex-direction:column;overflow:hidden}
+    .left-header{padding:9px 11px;border-bottom:1px solid var(--border);
+                 display:flex;flex-direction:column;gap:7px}
+    .scan-row{display:flex;gap:5px}
+    #pathInput{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+               color:var(--text);padding:6px 8px;border-radius:var(--radius-sm);font-size:.79rem}
+    #pathInput:focus{outline:none;border-color:var(--accent)}
+    .filter-row{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+    .ext-chip{font-size:.68rem;padding:2px 7px;border-radius:20px;border:1px solid var(--border);
+              cursor:pointer;color:var(--text-dim);background:transparent;transition:all .12s;font-family:var(--mono)}
+    .ext-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+
+    .batch-bar{display:none;align-items:center;gap:6px;padding:6px 11px;
+               border-bottom:1px solid var(--border);background:var(--panel-alt)}
+    .batch-bar.on{display:flex}
+    .batch-count{font-size:.75rem;color:var(--text-mid);flex:1}
+
+    .file-list{flex:1;overflow-y:auto;padding:2px 0}
+    .file-list::-webkit-scrollbar{width:4px}
+    .file-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .file-item{padding:6px 11px;cursor:pointer;border-left:3px solid transparent;
+               transition:background .1s;display:flex;align-items:flex-start;gap:7px}
+    .file-item:hover{background:rgba(91,141,238,.07)}
+    .file-item.selected{background:var(--accent-dim);border-left-color:var(--accent)}
+    .file-item.checked{background:rgba(91,141,238,.05)}
+    .file-item.done .fi-name{color:var(--success)}
+    .fi-cb{margin-top:3px;flex-shrink:0;accent-color:var(--accent);cursor:pointer}
+    .fi-body{min-width:0;flex:1}
+    .fi-name-row{display:flex;align-items:flex-start;gap:5px}
+    .ext-badge{font-size:.61rem;font-family:var(--mono);padding:1px 4px;background:var(--bg);
+               border:1px solid var(--border);border-radius:3px;color:var(--text-dim);
+               flex-shrink:0;margin-top:1px;text-transform:uppercase}
+    .fi-name{font-size:.79rem;word-break:break-all}
+    .fi-hint{font-size:.69rem;color:var(--text-dim);margin-top:2px}
+    .left-footer{padding:5px 11px;border-top:1px solid var(--border);
+                 display:flex;justify-content:space-between;font-size:.7rem;color:var(--text-dim)}
+
+    /* centre panel */
+    .centre-panel{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+    #detailView{display:flex;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+    .detail-scroll{flex:1;overflow-y:auto;padding:16px 18px;
+                   display:grid;grid-template-columns:1fr 1fr;gap:16px;align-content:start}
+    .detail-scroll::-webkit-scrollbar{width:4px}
+    .detail-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .section{display:flex;flex-direction:column;gap:9px}
+    .section.full{grid-column:1/-1}
+    .section-head{font-size:.68rem;font-weight:700;text-transform:uppercase;
+                  letter-spacing:.08em;color:var(--text-dim)}
+
+    .search-row{display:flex;gap:6px}
+    #searchQuery{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+                 color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:.83rem}
+    #searchQuery:focus{outline:none;border-color:var(--accent)}
+    .search-tools{display:flex;gap:5px;margin-top:3px;align-items:center}
+    .search-hint{font-size:.69rem;color:var(--text-dim);flex:1}
+
+    .result-list{display:flex;flex-direction:column;gap:5px}
+    .result-card{background:var(--bg);border:1px solid var(--border);
+                 border-radius:var(--radius);padding:8px 11px;cursor:pointer;transition:border-color .12s}
+    .result-card:hover{border-color:var(--border-hi)}
+    .result-card.picked{border-color:var(--accent);background:var(--accent-dim)}
+    .rc-title{font-size:.83rem;font-weight:600}
+    .rc-sub{font-size:.73rem;color:var(--text-mid);margin-top:2px}
+    .source-badge{display:inline-block;font-size:.65rem;padding:1px 5px;border-radius:3px;
+                  background:var(--panel-alt);border:1px solid var(--border);
+                  color:var(--text-dim);margin-top:4px}
+
+    .field-group{display:flex;flex-direction:column;gap:7px}
+    .field{display:flex;flex-direction:column;gap:2px}
+    .field label{font-size:.68rem;color:var(--text-dim)}
+    .field input{background:var(--bg);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--radius-sm);font-size:.82rem}
+    .field input:focus{outline:none;border-color:var(--accent)}
+    .field input.changed{border-color:var(--accent-hi)}
+
+    .preview-card{background:var(--bg);border:1px solid var(--border);
+                  border-radius:var(--radius);padding:11px 13px}
+    .preview-line{margin-bottom:5px}.preview-line:last-child{margin-bottom:0}
+    .preview-lbl{font-size:.67rem;color:var(--text-dim);margin-bottom:2px}
+    .preview-val{font-family:var(--mono);font-size:.78rem;word-break:break-all}
+    .preview-old{color:var(--text-dim)}.preview-new{color:var(--accent-hi)}
+    .conflict-msg{display:none;font-size:.73rem;color:var(--warn);margin-top:5px}
+
+    .action-bar{border-top:1px solid var(--border);padding:9px 18px;
+                display:flex;gap:7px;align-items:center}
+    .action-status{flex:1;font-size:.78rem;padding:4px 9px;border-radius:var(--radius-sm);
+                   min-height:28px;display:flex;align-items:center}
+    .action-status.ok{background:rgba(77,184,130,.12);color:var(--success)}
+    .action-status.err{background:rgba(224,92,92,.12);color:var(--error)}
+    .action-status.warn{background:rgba(232,162,58,.12);color:var(--warn)}
+
+    /* right panel */
+    .right-panel{background:var(--panel);border-left:1px solid var(--border);
+                 display:flex;flex-direction:column;overflow:hidden}
+    .rp-tabs{display:flex;border-bottom:1px solid var(--border)}
+    .rp-tab{flex:1;padding:9px 0;font-size:.75rem;text-align:center;cursor:pointer;
+            color:var(--text-dim);border-bottom:2px solid transparent;transition:color .12s}
+    .rp-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+    .rp-pane{display:none;flex:1;flex-direction:column;overflow:hidden}
+    .rp-pane.active{display:flex}
+
+    .batch-list{flex:1;overflow-y:auto;padding:4px 0}
+    .batch-list::-webkit-scrollbar{width:4px}
+    .batch-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .batch-item{padding:6px 12px;font-size:.77rem;border-bottom:1px solid var(--border);
+                display:flex;gap:7px;align-items:flex-start}
+    .batch-item-icon{flex-shrink:0;margin-top:1px}
+    .batch-item-body{min-width:0;flex:1}
+    .batch-item-orig{color:var(--text-dim);word-break:break-all}
+    .batch-item-new{color:var(--accent-hi);word-break:break-all;margin-top:2px}
+    .batch-item-err{color:var(--error);margin-top:2px;font-size:.72rem}
+    .batch-controls{padding:10px 12px;border-top:1px solid var(--border);
+                    display:flex;flex-direction:column;gap:8px}
+    .batch-tpl-row{display:flex;gap:6px;align-items:center}
+    .batch-tpl-row label{font-size:.7rem;color:var(--text-dim);white-space:nowrap}
+    #batchTplInput{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+                   color:var(--text);padding:5px 8px;border-radius:var(--radius-sm);
+                   font-size:.76rem;font-family:var(--mono)}
+    #batchTplInput:focus{outline:none;border-color:var(--accent)}
+    .batch-btn-row{display:flex;gap:6px}
+
+    .presets-list{flex:1;overflow-y:auto;padding:8px 12px;
+                  display:flex;flex-direction:column;gap:7px}
+    .preset-item{background:var(--bg);border:1px solid var(--border);
+                 border-radius:var(--radius);padding:8px 10px;cursor:pointer;
+                 display:flex;flex-direction:column;gap:3px;transition:border-color .12s}
+    .preset-item:hover{border-color:var(--border-hi)}
+    .preset-item.current{border-color:var(--accent)}
+    .preset-name{font-size:.8rem;font-weight:600}
+    .preset-tpl{font-size:.68rem;font-family:var(--mono);color:var(--text-dim);word-break:break-all}
+    .preset-actions{display:flex;gap:5px;margin-top:4px}
+    .preset-controls{padding:10px 12px;border-top:1px solid var(--border);
+                     display:flex;flex-direction:column;gap:7px}
+    .preset-new-row{display:flex;gap:5px}
+    #newPresetName{flex:1;min-width:0;background:var(--bg);border:1px solid var(--border);
+                   color:var(--text);padding:5px 8px;border-radius:var(--radius-sm);font-size:.78rem}
+    #newPresetName:focus{outline:none;border-color:var(--accent)}
+
+    .settings-body{padding:14px 13px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+    .rules-list{display:flex;flex-direction:column;gap:6px}
+    .rule-item{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);
+               padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+    .rule-item.disabled{opacity:.5}
+    .rule-top{display:flex;align-items:center;gap:7px}
+    .rule-name{font-size:.78rem;font-weight:600;flex:1;min-width:0;overflow:hidden;
+               text-overflow:ellipsis;white-space:nowrap}
+    .rule-pattern{font-size:.69rem;font-family:var(--mono);color:var(--text-dim);word-break:break-all;padding-left:2px}
+    .rule-actions{display:flex;gap:4px;margin-top:2px}
+    .new-rule-form{display:flex;flex-direction:column;gap:6px;background:var(--bg);
+                   border:1px solid var(--border);border-radius:var(--radius);padding:10px}
+    .new-rule-form input{background:var(--panel);border:1px solid var(--border);color:var(--text);
+                         padding:5px 8px;border-radius:var(--radius-sm);font-size:.78rem;width:100%}
+    .new-rule-form input:focus{outline:none;border-color:var(--accent)}
+    .rule-test-row{display:flex;gap:6px;align-items:center}
+    .rule-test-result{font-size:.73rem;font-family:var(--mono);color:var(--accent-hi);
+                      flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .setting-item{display:flex;flex-direction:column;gap:4px}
+    .setting-label{font-size:.75rem;font-weight:600}
+    .setting-desc{font-size:.7rem;color:var(--text-dim)}
+    .toggle-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+    .toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+    .toggle input{opacity:0;width:0;height:0}
+    .toggle-track{position:absolute;inset:0;background:var(--border);
+                  border-radius:20px;cursor:pointer;transition:background .2s}
+    .toggle input:checked+.toggle-track{background:var(--accent)}
+    .toggle-thumb{position:absolute;left:3px;top:3px;width:14px;height:14px;
+                  background:#fff;border-radius:50%;pointer-events:none;transition:transform .2s}
+    .toggle input:checked~.toggle-thumb{transform:translateX(16px)}
+
+    /* buttons */
+    .btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;
+         border-radius:var(--radius-sm);font-size:.79rem;font-weight:500;cursor:pointer;
+         border:none;transition:background .12s,opacity .12s;white-space:nowrap;font-family:var(--font)}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover:not(:disabled){background:var(--accent-hi)}
+    .btn-ghost{background:transparent;color:var(--text-mid);border:1px solid var(--border)}
+    .btn-ghost:hover:not(:disabled){border-color:var(--border-hi);color:var(--text)}
+    .btn-danger{background:transparent;color:var(--error);border:1px solid rgba(224,92,92,.3)}
+    .btn-danger:hover:not(:disabled){background:rgba(224,92,92,.1)}
+    .btn-sm{padding:4px 10px;font-size:.73rem}
+    .btn-xs{padding:2px 7px;font-size:.68rem}
+
+    .spin{width:12px;height:12px;border:2px solid var(--border-hi);border-top-color:var(--accent);
+          border-radius:50%;animation:spin .5s linear infinite;display:inline-block;flex-shrink:0}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    hr.div{border:none;border-top:1px solid var(--border);margin:4px 0}
+    .msg{padding:9px 11px;font-size:.78rem;color:var(--text-dim)}
+
+    /* folder browser modal */
+    .modal-overlay{display:none;position:fixed;inset:0;z-index:1000;
+                   background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:24px}
+    .modal-overlay.on{display:flex}
+    .modal{background:var(--panel);border:1px solid var(--border-hi);border-radius:var(--radius);
+           width:min(620px,100%);max-height:80vh;display:flex;flex-direction:column;overflow:hidden;
+           box-shadow:0 12px 40px rgba(0,0,0,.5)}
+    .modal-head{display:flex;align-items:center;gap:10px;padding:11px 14px;
+                border-bottom:1px solid var(--border);background:var(--panel-alt)}
+    .modal-title{font-size:.85rem;font-weight:700;flex:1;color:var(--text)}
+    .modal-x{background:transparent;border:none;color:var(--text-dim);font-size:1.1rem;
+             cursor:pointer;line-height:1;padding:2px 6px;border-radius:var(--radius-sm)}
+    .modal-x:hover{color:var(--text);background:var(--bg)}
+    .modal-bar{display:flex;align-items:center;gap:7px;padding:8px 14px;
+               border-bottom:1px solid var(--border)}
+    .modal-path{flex:1;min-width:0;font-family:var(--mono);font-size:.74rem;color:var(--text-mid);
+                background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);
+                padding:5px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .modal-body{flex:1;overflow-y:auto;padding:4px 0}
+    .modal-body::-webkit-scrollbar{width:4px}
+    .modal-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+    .browse-entry{display:flex;align-items:center;gap:8px;padding:6px 14px;cursor:pointer;
+                  font-size:.79rem;border-left:3px solid transparent;transition:background .1s}
+    .browse-entry:hover{background:rgba(91,141,238,.08)}
+    .browse-entry.file{cursor:default;color:var(--text-dim)}
+    .browse-entry.file:hover{background:transparent}
+    .browse-ico{flex-shrink:0;font-size:.85rem}
+    .browse-name{flex:1;min-width:0;word-break:break-all}
+    .browse-size{font-size:.68rem;color:var(--text-dim);font-family:var(--mono);flex-shrink:0}
+    .browse-section{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+                    color:var(--text-dim);padding:8px 14px 3px}
+    .modal-foot{display:flex;align-items:center;gap:7px;padding:10px 14px;
+                border-top:1px solid var(--border);background:var(--panel-alt)}
+    .modal-foot .spacer{flex:1}
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="logo">📚 BookRen</span>
+  <div class="topbar-sep"></div>
+  <div class="tpl-row">
+    <label for="templateInput">Template:</label>
+    <input id="templateInput" type="text" spellcheck="false"
+           placeholder="{title_sort} - {author} - {year} {publisher}">
+  </div>
+  <select id="presetSelect" title="Load a preset" onchange="loadPreset()">
+    <option value="">— presets —</option>
+  </select>
+  <button class="btn btn-primary btn-sm" onclick="saveTemplate()">Save</button>
+</div>
+
+<div class="main">
+
+  <!-- LEFT: file list -->
+  <div class="left-panel">
+    <div class="left-header">
+      <div class="scan-row">
+        <input id="pathInput" type="text" spellcheck="false" placeholder="/path/to/books"
+               onkeydown="if(event.key==='Enter')scanDir()">
+        <button class="btn btn-ghost btn-sm" id="browseBtn" onclick="openBrowse()" title="Browse server folders">📁 Browse</button>
+        <button class="btn btn-primary btn-sm" id="scanBtn" onclick="scanDir()">Scan</button>
+      </div>
+      <div class="filter-row" id="extFilters">
+        <span class="ext-chip active" data-ext="all" onclick="filterExt(this)">All</span>
+      </div>
+    </div>
+
+    <div class="batch-bar" id="batchBar">
+      <span class="batch-count" id="batchCount">0 selected</span>
+      <button class="btn btn-ghost btn-xs" onclick="selectAll()">All</button>
+      <button class="btn btn-ghost btn-xs" onclick="selectNone()">None</button>
+      <button class="btn btn-primary btn-xs" onclick="openBatchTab()">Batch ▶</button>
+    </div>
+
+    <div class="file-list" id="fileList">
+      <div class="msg">Enter a folder path above and click Scan.</div>
+    </div>
+    <div class="left-footer">
+      <span id="fileCount">—</span>
+      <span id="scanMsg"></span>
+    </div>
+  </div>
+
+  <!-- CENTRE: detail -->
+  <div class="centre-panel">
+    <div id="detailView">
+      <div class="detail-scroll">
+
+        <div class="section full">
+          <div class="section-head">Search Databases</div>
+          <div class="search-row">
+            <input id="searchQuery" type="text" spellcheck="false"
+                   placeholder="Title, author, or ISBN…"
+                   onkeydown="if(event.key==='Enter')doSearch()">
+            <button class="btn btn-primary btn-sm" id="searchBtn" onclick="doSearch()">Search</button>
+          </div>
+          <div class="search-tools">
+            <button class="btn btn-ghost btn-xs" onclick="stripNoise()" title="Remove noise tokens from filename and search">✂ Strip noise</button>
+            <button class="btn btn-ghost btn-xs" onclick="useFilename()" title="Use raw filename stem">↺ Use filename</button>
+            <span class="search-hint" id="searchHint"></span>
+          </div>
+          <div class="result-list" id="resultList"></div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">Identity</div>
+          <div class="field-group">
+            <div class="field"><label>Title (raw)</label>
+              <input id="f_title" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Title sort &nbsp;<small style="color:var(--text-dim)">"The X"→"X, The"</small></label>
+              <input id="f_title_sort" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Author(s)</label>
+              <input id="f_author" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Author sort &nbsp;<small style="color:var(--text-dim)">"C. S. Lewis"→"Lewis, C. S." (AACR2/RDA)</small></label>
+              <input id="f_author_sort" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Year</label>
+              <input id="f_year" type="text" oninput="onMetaInput(this)" spellcheck="false" maxlength="4"></div>
+            <div class="field"><label>Series</label>
+              <input id="f_series" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-head">Publication</div>
+          <div class="field-group">
+            <div class="field"><label>Publisher</label>
+              <input id="f_publisher" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>City</label>
+              <input id="f_city" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>ISBN</label>
+              <input id="f_isbn" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Format</label>
+              <input id="f_format" type="text" oninput="onMetaInput(this)" spellcheck="false"
+                     placeholder="Hardcover / Paperback / EPUB…"></div>
+            <div class="field"><label>Edition</label>
+              <input id="f_edition" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+            <div class="field"><label>Language</label>
+              <input id="f_language" type="text" oninput="onMetaInput(this)" spellcheck="false"></div>
+          </div>
+        </div>
+
+        <div class="section full">
+          <div class="section-head">Filename Preview</div>
+          <div class="preview-card">
+            <div class="preview-line">
+              <div class="preview-lbl">Current</div>
+              <div class="preview-val preview-old" id="previewOld">—</div>
+            </div>
+            <hr class="div">
+            <div class="preview-line">
+              <div class="preview-lbl">New</div>
+              <div class="preview-val preview-new" id="previewNew">—</div>
+            </div>
+            <div class="conflict-msg" id="conflictMsg">⚠ A file with this name already exists.</div>
+          </div>
+        </div>
+
+      </div><!-- /detail-scroll -->
+
+      <div class="action-bar">
+        <button class="btn btn-ghost btn-sm" onclick="autoSortTitle()">Sort Title</button>
+        <button class="btn btn-ghost btn-sm" onclick="clearForm()">Clear</button>
+        <div class="action-status" id="actionStatus"></div>
+        <button class="btn btn-ghost btn-sm" onclick="doRename(true)">Dry Run</button>
+        <button class="btn btn-primary" id="renameBtn" onclick="doRename(false)">Rename</button>
+      </div>
+    </div><!-- /detailView -->
+  </div>
+
+  <!-- RIGHT: batch / presets / settings -->
+  <div class="right-panel">
+    <div class="rp-tabs">
+      <div class="rp-tab active"  data-pane="batch"    onclick="switchTab(this)">Batch</div>
+      <div class="rp-tab"         data-pane="presets"  onclick="switchTab(this)">Presets</div>
+      <div class="rp-tab"         data-pane="settings" onclick="switchTab(this)">Settings</div>
+    </div>
+
+    <div class="rp-pane active" id="pane-batch">
+      <div class="batch-list" id="batchList">
+        <div class="msg">Tick files in the left panel, then preview or rename.</div>
+      </div>
+      <div class="batch-controls">
+        <div class="batch-tpl-row">
+          <label for="batchTplInput">Template:</label>
+          <input id="batchTplInput" type="text" spellcheck="false" placeholder="(uses active template)">
+        </div>
+        <div class="batch-btn-row">
+          <button class="btn btn-ghost btn-sm" onclick="batchPreview()" style="flex:1">Preview</button>
+          <button class="btn btn-ghost btn-sm" onclick="batchRename(true)"  style="flex:1">Dry Run</button>
+          <button class="btn btn-primary"      onclick="batchRename(false)" style="flex:1">Rename All</button>
+        </div>
+        <div id="batchStatus" class="action-status"></div>
+      </div>
+    </div>
+
+    <div class="rp-pane" id="pane-presets">
+      <div class="presets-list" id="presetsList"></div>
+      <div class="preset-controls">
+        <div class="section-head" style="padding:0 0 4px">Save current template as preset</div>
+        <div class="preset-new-row">
+          <input id="newPresetName" type="text" placeholder="Preset name…"
+                 onkeydown="if(event.key==='Enter')addPreset()">
+          <button class="btn btn-primary btn-sm" onclick="addPreset()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="rp-pane" id="pane-settings">
+      <div class="settings-body">
+
+        <div class="setting-item">
+          <div class="setting-label">Auto-search on file select</div>
+          <div class="setting-desc">Run a database search automatically when you click a file.</div>
+          <div class="toggle-row">
+            <label class="toggle">
+              <input type="checkbox" id="autoSearchToggle" onchange="saveSetting('auto_search',this.checked)">
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+            <span id="autoSearchLabel" style="font-size:.75rem;color:var(--text-dim)">Off</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-label">Global strip rules</div>
+          <div class="setting-desc">Patterns removed from every filename before searching. Applied before the built-in noise tokens.</div>
+          <div class="rules-list" id="rulesList" style="margin-top:6px"></div>
+          <button class="btn btn-ghost btn-xs" style="margin-top:6px" onclick="toggleNewRuleForm()">+ Add rule</button>
+          <div class="new-rule-form" id="newRuleForm" style="display:none;margin-top:8px">
+            <div class="section-head" style="padding:0 0 4px">New strip rule</div>
+            <input id="newRuleName" type="text" placeholder="Rule name">
+            <input id="newRulePattern" type="text" style="font-family:var(--mono);font-size:.74rem" placeholder="Regex pattern">
+            <div class="rule-test-row">
+              <input id="newRuleTest" type="text" placeholder="Test string" oninput="testNewRule()">
+              <span class="rule-test-result" id="newRuleTestResult"></span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:2px">
+              <button class="btn btn-primary btn-xs" onclick="addRule()">Save rule</button>
+              <button class="btn btn-ghost btn-xs" onclick="toggleNewRuleForm()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- FOLDER BROWSER MODAL -->
+<div class="modal-overlay" id="browseOverlay" onclick="if(event.target===this)closeBrowse()">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Browse folders">
+    <div class="modal-head">
+      <span class="modal-title">📁 Browse folders</span>
+      <button class="modal-x" onclick="closeBrowse()" title="Close" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-bar">
+      <button class="btn btn-ghost btn-sm" id="browseUpBtn" onclick="browseUp()" title="Go to parent folder">⬆ Up</button>
+      <span class="modal-path" id="browsePath">—</span>
+    </div>
+    <div class="modal-body" id="browseBody">
+      <div class="msg">Loading…</div>
+    </div>
+    <div class="modal-foot">
+      <span class="spacer"></span>
+      <button class="btn btn-ghost btn-sm" onclick="closeBrowse()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="browseUseBtn" onclick="browseUse()">✓ Use this folder</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const FIELDS = ['title','title_sort','author','author_sort','year','publisher','city',
+                'isbn','series','format','edition','language'];
+
+const NOISE_RE = [
+  /\[.*?\]/g,/\(.*?\)/g,
+  /\bv\d+(\.\d+)?\b/gi,
+  /\b(epub|pdf|mobi|azw3?|djvu|retail|fixed|scan|ocr|hq|z-?lib|libgen)\b/gi,
+  /_+/g,/\s{2,}/g,
+];
+
+const S = {
+  files:[],visible:[],selected:null,results:[],
+  template:'',presets:[],autoSearch:true,stripRules:[],
+  checkedPaths:new Set(),previewTimer:null,
+};
+
+async function init() {
+  try {
+    const cfg = await api('/api/bookren/config');
+    S.template    = cfg.template;
+    S.presets     = cfg.presets || [];
+    S.autoSearch  = cfg.auto_search !== false;
+    S.stripRules  = cfg.strip_rules || [];
+    document.getElementById('templateInput').value = S.template;
+    setAutoSearchUI(S.autoSearch);
+    renderPresets();
+    rebuildDropdown();
+    renderRules();
+  } catch {
+    S.template = '{title_sort} - {author} - {year} {publisher}, {city} - {format} - ISBN {isbn}';
+    document.getElementById('templateInput').value = S.template;
+  }
+  document.getElementById('templateInput').addEventListener('input', function(){
+    S.template = this.value; schedulePreview();
+  });
+}
+
+async function api(url, method='GET', body=null) {
+  const opts={method,headers:{'Content-Type':'application/json'}};
+  if(body!==null) opts.body=JSON.stringify(body);
+  const r=await fetch(url,opts);
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.detail||`HTTP ${r.status}`);}
+  return r.json();
+}
+
+/* ── template ── */
+async function saveTemplate() {
+  S.template = document.getElementById('templateInput').value.trim();
+  try { await api('/api/bookren/config','POST',{template:S.template}); setStatus('ok','Template saved.'); }
+  catch(e){ setStatus('err',`Save failed: ${e.message}`); }
+  schedulePreview();
+}
+
+/* ── presets ── */
+function rebuildDropdown() {
+  const sel = document.getElementById('presetSelect');
+  sel.innerHTML = '<option value="">— presets —</option>';
+  S.presets.forEach((p,i)=>{
+    const o=document.createElement('option');o.value=i;o.textContent=p.name;sel.appendChild(o);
+  });
+}
+
+function loadPreset() {
+  const sel=document.getElementById('presetSelect');
+  const idx=parseInt(sel.value,10);
+  if(isNaN(idx))return;
+  S.template=S.presets[idx].template;
+  document.getElementById('templateInput').value=S.template;
+  sel.value=''; schedulePreview();
+  document.querySelectorAll('.preset-item').forEach((el,i)=>el.classList.toggle('current',i===idx));
+}
+
+function renderPresets() {
+  const list=document.getElementById('presetsList');
+  if(!S.presets.length){list.innerHTML='<div class="msg">No presets saved.</div>';return;}
+  list.innerHTML=S.presets.map((p,i)=>`
+    <div class="preset-item" data-pi="${i}">
+      <div class="preset-name">${esc(p.name)}</div>
+      <div class="preset-tpl">${esc(p.template)}</div>
+      <div class="preset-actions">
+        <button class="btn btn-ghost btn-xs" onclick="applyPreset(${i})">Use</button>
+        <button class="btn btn-danger btn-xs" onclick="deletePreset(${i})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+function applyPreset(i) {
+  if(!S.presets[i])return;
+  S.template=S.presets[i].template;
+  document.getElementById('templateInput').value=S.template;
+  document.querySelectorAll('.preset-item').forEach((el,j)=>el.classList.toggle('current',j===i));
+  schedulePreview();
+}
+
+async function addPreset() {
+  const name=document.getElementById('newPresetName').value.trim();
+  const tpl=document.getElementById('templateInput').value.trim();
+  if(!name||!tpl)return;
+  S.presets.push({name,template:tpl});
+  document.getElementById('newPresetName').value='';
+  await api('/api/bookren/config','POST',{presets:S.presets}).catch(()=>{});
+  renderPresets(); rebuildDropdown();
+}
+
+async function deletePreset(i) {
+  S.presets.splice(i,1);
+  await api('/api/bookren/config','POST',{presets:S.presets}).catch(()=>{});
+  renderPresets(); rebuildDropdown();
+}
+
+/* ── settings ── */
+function setAutoSearchUI(v){
+  document.getElementById('autoSearchToggle').checked=v;
+  document.getElementById('autoSearchLabel').textContent=v?'On':'Off';
+}
+async function saveSetting(key,val) {
+  if(key==='auto_search'){S.autoSearch=val;setAutoSearchUI(val);}
+  await api('/api/bookren/config','POST',{[key]:val}).catch(()=>{});
+}
+
+/* ── tabs ── */
+function switchTab(tab) {
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rp-pane').forEach(p=>p.classList.remove('active'));
+  tab.classList.add('active');
+  document.getElementById(`pane-${tab.dataset.pane}`).classList.add('active');
+}
+function openBatchTab() {
+  switchTab(document.querySelector('.rp-tab[data-pane="batch"]'));
+  batchPreview();
+}
+
+/* ── scan ── */
+async function scanDir() {
+  const path=document.getElementById('pathInput').value.trim();
+  if(!path)return;
+  const btn=document.getElementById('scanBtn');
+  btn.innerHTML='<span class="spin"></span>';btn.disabled=true;
+  document.getElementById('fileList').innerHTML='<div class="msg"><span class="spin"></span> Scanning…</div>';
+  try {
+    const data=await api('/api/bookren/scan','POST',{path});
+    S.files=data.files; S.checkedPaths.clear();
+    buildExtFilters(S.files); applyFilter();
+    document.getElementById('fileCount').textContent=`${data.count} file${data.count!==1?'s':''}`;
+  } catch(e) {
+    document.getElementById('fileList').innerHTML=`<div class="msg" style="color:var(--error)">Error: ${esc(e.message)}</div>`;
+    document.getElementById('fileCount').textContent='Error';
+  } finally { btn.textContent='Scan';btn.disabled=false; }
+}
+
+function buildExtFilters(files) {
+  const exts=[...new Set(files.map(f=>f.ext))].sort();
+  const row=document.getElementById('extFilters');
+  row.innerHTML='<span class="ext-chip active" data-ext="all" onclick="filterExt(this)">All</span>';
+  exts.forEach(ext=>{
+    const el=document.createElement('span');
+    el.className='ext-chip';el.dataset.ext=ext;el.textContent=ext.replace('.','');
+    el.onclick=()=>filterExt(el);row.appendChild(el);
+  });
+}
+
+function filterExt(chip) {
+  document.querySelectorAll('.ext-chip').forEach(c=>c.classList.remove('active'));
+  chip.classList.add('active'); applyFilter(chip.dataset.ext);
+}
+
+function applyFilter(ext=null) {
+  if(!ext){const a=document.querySelector('.ext-chip.active');ext=a?a.dataset.ext:'all';}
+  S.visible=ext==='all'?[...S.files]:S.files.filter(f=>f.ext===ext);
+  renderFileList();
+}
+
+function renderFileList() {
+  const list=document.getElementById('fileList');
+  if(!S.visible.length){list.innerHTML='<div class="msg">No files found.</div>';return;}
+  list.innerHTML=S.visible.map((f,i)=>{
+    const hint=f.embedded?.title||'';
+    const checked=S.checkedPaths.has(f.path);
+    return `<div class="file-item${checked?' checked':''}" data-vi="${i}" id="fi-${i}">
+      <input class="fi-cb" type="checkbox" ${checked?'checked':''}
+             onchange="toggleCheck(${i},this.checked)" onclick="event.stopPropagation()">
+      <div class="fi-body" onclick="selectFile(${i})">
+        <div class="fi-name-row">
+          <span class="ext-badge">${esc(f.ext.replace('.',''))}</span>
+          <span class="fi-name">${esc(f.name)}</span>
+        </div>
+        ${hint?`<div class="fi-hint">${esc(hint)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── checkboxes / batch select ── */
+function toggleCheck(vi,checked) {
+  const f=S.visible[vi]; if(!f)return;
+  if(checked) S.checkedPaths.add(f.path); else S.checkedPaths.delete(f.path);
+  document.getElementById(`fi-${vi}`)?.classList.toggle('checked',checked);
+  updateBatchBar();
+}
+function updateBatchBar() {
+  const n=S.checkedPaths.size;
+  document.getElementById('batchBar').classList.toggle('on',n>0);
+  document.getElementById('batchCount').textContent=`${n} selected`;
+}
+function selectAll() {
+  S.visible.forEach((f,i)=>{
+    S.checkedPaths.add(f.path);
+    const el=document.getElementById(`fi-${i}`);
+    if(el){el.classList.add('checked');el.querySelector('.fi-cb').checked=true;}
+  });
+  updateBatchBar();
+}
+function selectNone() {
+  S.visible.forEach((f,i)=>{
+    S.checkedPaths.delete(f.path);
+    const el=document.getElementById(`fi-${i}`);
+    if(el){el.classList.remove('checked');el.querySelector('.fi-cb').checked=false;}
+  });
+  updateBatchBar();
+}
+
+/* ── select file ── */
+async function selectFile(i) {
+  document.querySelectorAll('.file-item').forEach(el=>el.classList.remove('selected'));
+  document.getElementById(`fi-${i}`)?.classList.add('selected');
+  const f=S.visible[i]; if(!f)return;
+  S.selected=f;
+  fillForm(f.embedded||{});
+  document.getElementById('previewOld').textContent=f.name;
+  document.getElementById('previewNew').textContent='—';
+  document.getElementById('conflictMsg').style.display='none';
+  setStatus('','');
+  document.getElementById('resultList').innerHTML='';
+  S.results=[];
+  const q=stemToQuery(f.stem);
+  document.getElementById('searchQuery').value=q;
+  document.getElementById('searchHint').textContent='';
+  if(f.embedded?.title) schedulePreview();
+  if(S.autoSearch) doSearch();
+}
+
+function stemToQuery(stem) {
+  let q=stem;
+  NOISE_RE.forEach(p=>{q=q.replace(p,' ');});
+  return q.replace(/\s{2,}/g,' ').trim();
+}
+
+/* ── noise strip ── */
+async function stripNoise() {
+  if(!S.selected)return;
+  try {
+    const r=await api('/api/bookren/strip-noise','POST',{stem:S.selected.stem});
+    document.getElementById('searchQuery').value=r.cleaned;
+    document.getElementById('searchHint').textContent=`Stripped from: ${S.selected.stem}`;
+  } catch {
+    document.getElementById('searchQuery').value=stemToQuery(S.selected.stem);
+  }
+}
+function useFilename() {
+  if(!S.selected)return;
+  document.getElementById('searchQuery').value=S.selected.stem;
+  document.getElementById('searchHint').textContent='';
+}
+
+/* ── search ── */
+async function doSearch() {
+  const q=document.getElementById('searchQuery').value.trim();
+  if(!q)return;
+  const btn=document.getElementById('searchBtn');
+  btn.innerHTML='<span class="spin"></span>';btn.disabled=true;
+  document.getElementById('resultList').innerHTML='';
+  try {
+    const data=await api('/api/bookren/search','POST',{query:q});
+    S.results=data.results; renderResults(S.results);
+    // Option B: auto-merge the top result into any fields that are currently
+    // empty. Fields already populated (from embedded metadata or manual edits)
+    // are never overwritten — we only fill the gaps.
+    if(S.results.length > 0) mergeTopResult(S.results[0]);
+  } catch(e) {
+    document.getElementById('resultList').innerHTML=
+      `<div class="msg" style="color:var(--error)">Search failed: ${esc(e.message)}</div>`;
+  } finally { btn.textContent='Search';btn.disabled=false; }
+}
+
+function mergeTopResult(r) {
+  // Map of form field id → value from result.
+  // Only fills a field if it is currently blank.
+  const mapping = {
+    'f_title':       r.title       || '',
+    'f_title_sort':  r.title_sort  || '',
+    'f_author':      r.author      || '',
+    'f_author_sort': r.author_sort || '',
+    'f_year':        r.year        || '',
+    'f_publisher':   r.publisher   || '',
+    'f_city':        r.city        || '',
+    'f_isbn':        r.isbn13 || r.isbn || '',
+    'f_series':      r.series      || '',
+    'f_edition':     r.edition     || '',
+    'f_language':    r.language    || '',
+  };
+
+  let anyFilled = false;
+  for(const [id, val] of Object.entries(mapping)){
+    if(!val) continue;                          // nothing to fill
+    const el = document.getElementById(id);
+    if(!el || el.value.trim()) continue;        // field already has a value — skip
+    el.value = val;
+    anyFilled = true;
+  }
+
+  // If author was filled but author_sort wasn't, compute it now
+  const authorEl     = document.getElementById('f_author');
+  const authorSortEl = document.getElementById('f_author_sort');
+  if(authorEl && authorSortEl && authorEl.value.trim() && !authorSortEl.value.trim()){
+    authorSortEl.value = invertAuthor(authorEl.value.trim());
+    anyFilled = true;
+  }
+
+  if(anyFilled) schedulePreview();
+}
+
+function renderResults(results) {
+  const list=document.getElementById('resultList');
+  if(!results.length){list.innerHTML='<div class="msg">No results. Try a different query or ISBN.</div>';return;}
+  list.innerHTML=results.map((r,i)=>`
+    <div class="result-card" data-ri="${i}" onclick="pickResult(${i})">
+      <div class="rc-title">${esc(r.title_sort||r.title)}</div>
+      <div class="rc-sub">
+        ${r.author?esc(r.author):'<em style="color:var(--text-dim)">Author unknown</em>'}
+        ${r.year?` · ${esc(r.year)}`:''}
+        ${r.publisher?` · ${esc(r.publisher)}`:''}
+        ${r.city?`, ${esc(r.city)}`:''}
+      </div>
+      ${r.isbn?`<div class="rc-sub">ISBN: ${esc(r.isbn)}</div>`:''}
+      <span class="source-badge">${esc(r.source)}</span>
+    </div>`).join('');
+}
+
+function pickResult(i) {
+  document.querySelectorAll('.result-card').forEach(c=>c.classList.remove('picked'));
+  document.querySelector(`.result-card[data-ri="${i}"]`)?.classList.add('picked');
+  const r=S.results[i]; if(!r)return;
+  fillForm(r); schedulePreview();
+}
+
+/* ── meta form ── */
+function fillForm(meta) {
+  FIELDS.forEach(k=>{
+    const el=document.getElementById(`f_${k}`);
+    if(!el)return;
+    el.value = k==='isbn' ? (meta.isbn13||meta.isbn||'') : (meta[k]||'');
+    el.classList.remove('changed');
+  });
+  // Auto-populate author_sort if the metadata didn't include one.
+  // This mirrors the server-side fallback in renamer.py so the preview
+  // always shows the correct AACR2 filename, not the fallback.
+  const authorSortEl = document.getElementById('f_author_sort');
+  if(authorSortEl && !authorSortEl.value.trim()){
+    const author = document.getElementById('f_author').value.trim();
+    if(author) authorSortEl.value = invertAuthor(author);
+  }
+}
+function getFormMeta() {
+  const m={};
+  FIELDS.forEach(k=>{const el=document.getElementById(`f_${k}`);m[k]=el?el.value.trim():'';});
+  m.isbn13=m.isbn; return m;
+}
+function onMetaInput(inp){
+  inp.classList.add('changed');
+  if(inp.id==='f_author'){
+    const s=document.getElementById('f_author_sort');
+    if(s&&!s.classList.contains('changed')) s.value=invertAuthor(inp.value.trim());
+  }
+  schedulePreview();
+}
+function invertAuthor(name){
+  if(!name)return '';
+  const words=name.split(' ');
+  if(words.length<2)return name;
+  return words[words.length-1]+', '+words.slice(0,-1).join(' ');
+}
+function autoSortTitle() {
+  const title=document.getElementById('f_title').value.trim();
+  if(!title)return;
+  const words=title.split(/\s+/);
+  const art=new Set(['the','a','an']);
+  let sorted=title;
+  if(words.length>=2&&art.has(words[0].toLowerCase()))
+    sorted=words.slice(1).join(' ')+', '+words[0];
+  const el=document.getElementById('f_title_sort');
+  el.value=sorted;el.classList.add('changed');schedulePreview();
+}
+function clearForm() {
+  fillForm({});
+  document.getElementById('previewNew').textContent='—';
+  document.getElementById('conflictMsg').style.display='none';
+  document.querySelectorAll('.result-card').forEach(c=>c.classList.remove('picked'));
+  setStatus('','');
+}
+
+/* ── preview ── */
+function schedulePreview(){clearTimeout(S.previewTimer);S.previewTimer=setTimeout(runPreview,220);}
+async function runPreview() {
+  if(!S.selected)return;
+  const meta=getFormMeta();
+  if(!meta.title&&!meta.title_sort&&!meta.author){document.getElementById('previewNew').textContent='—';return;}
+  const tpl=document.getElementById('templateInput').value||S.template;
+  try {
+    const r=await api('/api/bookren/preview','POST',{file_path:S.selected.path,metadata:meta,template:tpl});
+    document.getElementById('previewNew').textContent=r.new_name;
+    document.getElementById('conflictMsg').style.display=r.conflict?'block':'none';
+  } catch(e){document.getElementById('previewNew').textContent=`⚠ ${e.message}`;}
+}
+
+/* ── single rename ── */
+async function doRename(dryRun) {
+  if(!S.selected)return;
+  const btn=document.getElementById('renameBtn');
+  btn.disabled=true; setStatus('','');
+  const meta=getFormMeta();
+  const tpl=document.getElementById('templateInput').value||S.template;
+  try {
+    const r=await api('/api/bookren/rename','POST',{file_path:S.selected.path,metadata:meta,template:tpl,dry_run:dryRun});
+    if(dryRun){setStatus('ok',`Dry run → "${r.new_name}"`);return;}
+    if(r.status==='unchanged'){setStatus('warn','Filename is already correct.');return;}
+    patchState(S.selected.path,r.new_path,r.new_name);
+    document.getElementById('previewOld').textContent=r.new_name;
+    document.querySelector('.file-item.selected')?.classList.add('done');
+    const nameEl=document.querySelector('.file-item.selected .fi-name');
+    if(nameEl)nameEl.textContent=r.new_name;
+    setStatus('ok',`Renamed → ${r.new_name}`);
+  } catch(e){setStatus('err',`Error: ${e.message}`);}
+  finally{btn.disabled=false;}
+}
+
+/* ── batch rename ── */
+async function batchPreview() {
+  const checked=S.files.filter(f=>S.checkedPaths.has(f.path));
+  const list=document.getElementById('batchList');
+  if(!checked.length){list.innerHTML='<div class="msg">No files selected.</div>';return;}
+  const tpl=document.getElementById('batchTplInput').value.trim()
+         ||document.getElementById('templateInput').value||S.template;
+  list.innerHTML='<div class="msg"><span class="spin"></span> Generating previews…</div>';
+  try {
+    const r=await api('/api/bookren/rename-batch','POST',{
+      renames:checked.map(f=>({file_path:f.path,metadata:f.embedded||{},template:tpl})),
+      dry_run:true
+    });
+    renderBatchItems(r.results,false);
+  } catch(e){list.innerHTML=`<div class="msg" style="color:var(--error)">Error: ${esc(e.message)}</div>`;}
+}
+
+async function batchRename(dryRun) {
+  const checked=S.files.filter(f=>S.checkedPaths.has(f.path));
+  if(!checked.length){setBatchStatus('warn','No files selected.');return;}
+  const tpl=document.getElementById('batchTplInput').value.trim()
+         ||document.getElementById('templateInput').value||S.template;
+  setBatchStatus('','');
+  document.querySelectorAll('#pane-batch .btn').forEach(b=>b.disabled=true);
+  try {
+    const r=await api('/api/bookren/rename-batch','POST',{
+      renames:checked.map(f=>({file_path:f.path,metadata:f.embedded||{},template:tpl})),
+      dry_run:dryRun
+    });
+    renderBatchItems(r.results,!dryRun);
+    const ok=r.results.filter(x=>x.status==='renamed').length;
+    const err=r.results.filter(x=>x.status==='error').length;
+    if(!dryRun){
+      setBatchStatus(err?'warn':'ok',`${ok} renamed${err?`, ${err} errors`:''}`);
+      r.results.forEach(x=>{if(x.status==='renamed')patchState(x.original,x.new_path,x.new_name);});
+    } else {
+      setBatchStatus('ok',`Dry run complete — ${r.total} previewed.`);
+    }
+  } catch(e){setBatchStatus('err',`Error: ${e.message}`);}
+  finally{document.querySelectorAll('#pane-batch .btn').forEach(b=>b.disabled=false);}
+}
+
+function renderBatchItems(results,applyDone) {
+  const list=document.getElementById('batchList');
+  list.innerHTML=results.map(r=>{
+    if(r.status==='error')return`
+      <div class="batch-item">
+        <span class="batch-item-icon" style="color:var(--error)">✗</span>
+        <div class="batch-item-body">
+          <div class="batch-item-orig">${esc(r.file_path?.split(/[\\/]/).pop())}</div>
+          <div class="batch-item-err">${esc(r.error)}</div>
+        </div>
+      </div>`;
+    const icon=r.status==='renamed'?'✓':r.status==='dry_run'?'▷':'=';
+    const col=r.status==='renamed'?'var(--success)':r.status==='dry_run'?'var(--accent)':'var(--text-dim)';
+    const orig=r.original?.split(/[\\/]/).pop()||'';
+    return`
+      <div class="batch-item">
+        <span class="batch-item-icon" style="color:${col}">${icon}</span>
+        <div class="batch-item-body">
+          <div class="batch-item-orig">${esc(orig)}</div>
+          ${r.new_name!==orig?`<div class="batch-item-new">→ ${esc(r.new_name)}</div>`:''}
+        </div>
+      </div>`;
+  }).join('');
+  if(applyDone)results.forEach(r=>{
+    if(r.status!=='renamed')return;
+    const vi=S.visible.findIndex(f=>f.path===r.original);
+    if(vi!==-1)document.getElementById(`fi-${vi}`)?.classList.add('done');
+  });
+}
+
+function setBatchStatus(type,msg) {
+  const el=document.getElementById('batchStatus');
+  el.textContent=msg;el.className='action-status'+(type?` ${type}`:'');
+}
+
+/* ── state helpers ── */
+function patchState(oldPath,newPath,newName) {
+  [S.files,S.visible].forEach(arr=>{
+    const f=arr.find(x=>x.path===oldPath);
+    if(f){f.path=newPath;f.name=newName;f.stem=newName.replace(/\.[^.]+$/,'');}
+  });
+  if(S.selected?.path===oldPath){
+    S.selected.path=newPath;S.selected.name=newName;
+    S.selected.stem=newName.replace(/\.[^.]+$/,'');
+  }
+  if(S.checkedPaths.has(oldPath)){S.checkedPaths.delete(oldPath);S.checkedPaths.add(newPath);}
+}
+
+function setStatus(type,msg) {
+  const el=document.getElementById('actionStatus');
+  el.textContent=msg;el.className='action-status'+(type?` ${type}`:'');
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── folder browser modal ── */
+// Tracks the directory currently shown in the modal. null = shortcuts/roots view.
+let browseState = { path:null, parent:null };
+
+function openBrowse() {
+  const cur = document.getElementById('pathInput').value.trim();
+  document.getElementById('browseOverlay').classList.add('on');
+  browseLoad(cur || null);
+}
+function closeBrowse() {
+  document.getElementById('browseOverlay').classList.remove('on');
+}
+function browseUp() {
+  if(browseState.parent!==undefined && browseState.parent!==null) browseLoad(browseState.parent);
+}
+function browseUse() {
+  if(!browseState.path) return;            // nothing selected (still on shortcuts view)
+  document.getElementById('pathInput').value = browseState.path;
+  closeBrowse();
+  scanDir();                               // nice-to-have: kick off the scan
+}
+
+async function browseLoad(path) {
+  const body = document.getElementById('browseBody');
+  body.innerHTML = '<div class="msg"><span class="spin"></span> Loading…</div>';
+  try {
+    const data = await api('/api/bookren/browse','POST',{path: path||null});
+    browseState.path   = data.path || null;
+    browseState.parent = (data.parent===undefined ? null : data.parent);
+    renderBrowse(data);
+  } catch(e) {
+    body.innerHTML = `<div class="msg" style="color:var(--error)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function fmtSize(n) {
+  if(n===undefined||n===null) return '';
+  const u=['B','KB','MB','GB','TB']; let i=0, v=Number(n);
+  while(v>=1024 && i<u.length-1){v/=1024;i++;}
+  return (i===0?v:v.toFixed(1))+' '+u[i];
+}
+
+function renderBrowse(data) {
+  // path line
+  document.getElementById('browsePath').textContent = data.path || 'Select a starting location';
+  // Up button enabled only when a parent exists
+  document.getElementById('browseUpBtn').disabled = !(data.parent);
+  // Use button enabled only when we are inside an actual folder
+  document.getElementById('browseUseBtn').disabled = !data.path;
+
+  const body = document.getElementById('browseBody');
+  let html = '';
+
+  const shortcuts = data.shortcuts || [];
+  if(!data.path && shortcuts.length){
+    html += `<div class="browse-section">Locations</div>`;
+    shortcuts.forEach((s,i)=>{
+      html += `<div class="browse-entry" data-bkind="sc" data-bi="${i}">
+        <span class="browse-ico">📌</span>
+        <span class="browse-name">${esc(s.name)}</span>
+      </div>`;
+    });
+  } else if(shortcuts.length){
+    // keep shortcuts available even while browsing, as quick jumps
+    html += `<div class="browse-section">Locations</div>`;
+    shortcuts.forEach((s,i)=>{
+      html += `<div class="browse-entry" data-bkind="sc" data-bi="${i}">
+        <span class="browse-ico">📌</span>
+        <span class="browse-name">${esc(s.name)}</span>
+      </div>`;
+    });
+  }
+
+  const dirs = data.dirs || [];
+  if(dirs.length){
+    html += `<div class="browse-section">Folders</div>`;
+    dirs.forEach((d,i)=>{
+      html += `<div class="browse-entry" data-bkind="dir" data-bi="${i}">
+        <span class="browse-ico">📁</span>
+        <span class="browse-name">${esc(d.name)}</span>
+      </div>`;
+    });
+  }
+
+  const files = data.files || [];
+  if(files.length){
+    html += `<div class="browse-section">Files</div>`;
+    files.forEach(f=>{
+      html += `<div class="browse-entry file">
+        <span class="browse-ico">📄</span>
+        <span class="browse-name">${esc(f.name)}</span>
+        <span class="browse-size">${esc(fmtSize(f.size))}</span>
+      </div>`;
+    });
+  }
+
+  if(!html) html = '<div class="msg">This folder is empty.</div>';
+  body.innerHTML = html;
+
+  // Wire clicks (avoids inline-handler quoting issues with arbitrary paths).
+  body.querySelectorAll('.browse-entry[data-bkind]').forEach(el=>{
+    el.onclick = ()=>{
+      const kind = el.dataset.bkind, bi = parseInt(el.dataset.bi,10);
+      if(kind==='sc'){ const s=shortcuts[bi]; if(s) browseLoad(s.path); }
+      else if(kind==='dir'){ const d=dirs[bi]; if(d) browseLoad(d.path); }
+    };
+  });
+}
+
+// Close on Escape while the modal is open.
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && document.getElementById('browseOverlay').classList.contains('on'))
+    closeBrowse();
+});
+
+init();
+</script>
+</body>
+</html>

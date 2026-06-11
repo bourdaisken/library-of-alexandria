@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Library Map — Example Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --ink:#efe7d8; --ink-soft:#b6ab97; --ink-dim:#8a7f6c;
+  --bg:#221d18; --bg2:#2b2520; --panel:#191512; --line:#3a3128;
+  --plaster:#e7dcc6; --plaster-sh:#cdbfa3;
+  --wood:#5f3d22; --wood-lo:#46291425; --wood-hi:#7d4f2c;
+  --back-panel:#2c1d12;
+  --board:#7a4f2b;
+  --gold:#f3b53f; --gold-soft:#ffd98a;
+  --sky1:#9bd3ec; --sky2:#cfeefb;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --serif:"Spectral",Georgia,serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;}
+body{
+  font-family:var(--ui); color:var(--ink);
+  background:
+    radial-gradient(120% 90% at 50% -10%, #2f2922 0%, var(--bg) 60%, #1a1612 100%);
+  overflow:hidden;
+}
+#app{height:100vh;display:flex;flex-direction:column;}
+
+/* ---------- top bar ---------- */
+.topbar{
+  display:flex;align-items:center;gap:18px;
+  padding:13px 20px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,#2b2520,#221d18);
+  box-shadow:0 1px 0 rgba(255,255,255,.03), 0 10px 24px -18px #000;
+  z-index:20;
+}
+.brand{display:flex;flex-direction:column;line-height:1.05;}
+.brand b{font-family:var(--serif);font-weight:700;font-size:18px;letter-spacing:.2px;color:var(--ink);}
+.brand small{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-top:2px;}
+
+.search{display:flex;align-items:center;gap:8px;margin-left:6px;}
+.search form{display:flex;align-items:center;gap:8px;}
+.search input{
+  width:230px;font-family:var(--mono);font-size:13px;color:var(--ink);
+  background:#16120f;border:1px solid var(--line);border-radius:9px;
+  padding:9px 12px;outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.search input:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f3b53f22;}
+.search input::placeholder{color:#6d6353;}
+.btn{
+  font:600 13px/1 var(--ui);color:#23190b;cursor:pointer;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+  border:none;border-radius:9px;padding:10px 14px;
+  box-shadow:0 1px 0 #ffe9b8 inset,0 6px 14px -8px var(--gold);
+}
+.btn.ghost{background:#211c17;color:var(--ink-soft);border:1px solid var(--line);box-shadow:none;}
+.btn.ghost:hover{color:var(--ink);border-color:#54483a;}
+
+.tabs{margin-left:auto;display:flex;gap:4px;background:#16120f;padding:4px;border-radius:11px;border:1px solid var(--line);}
+.tab{
+  font:600 13px/1 var(--ui);color:var(--ink-soft);cursor:pointer;
+  background:transparent;border:none;border-radius:8px;padding:9px 15px;display:flex;align-items:center;gap:7px;
+  transition:background .15s,color .15s;
+}
+.tab:hover{color:var(--ink);}
+.tab.on{background:linear-gradient(180deg,#3a312700,#3a3127);color:var(--ink);box-shadow:0 1px 0 #4a3f31 inset;}
+.tab .ic{width:13px;height:13px;opacity:.85;}
+
+/* ---------- stage ---------- */
+.stage{position:relative;flex:1;min-height:0;overflow:hidden;}
+.view{position:absolute;inset:0;}
+
+/* status / results strip */
+.status{
+  position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;
+  max-width:80%;padding:9px 14px;border-radius:12px;z-index:15;
+  background:rgba(22,18,15,.82);border:1px solid var(--line);backdrop-filter:blur(8px);
+  box-shadow:0 14px 30px -18px #000;
+}
+.status .lab{font-size:12px;color:var(--ink-dim);letter-spacing:.04em;}
+.chip{
+  font-family:var(--mono);font-size:12px;font-weight:700;color:#2a1e08;cursor:pointer;
+  background:linear-gradient(180deg,var(--gold-soft),var(--gold));
+  border:none;border-radius:7px;padding:5px 9px;display:inline-flex;gap:6px;align-items:center;
+}
+.chip .w{font-weight:500;color:#5a3f12;font-family:var(--ui);font-size:10px;}
+.status .clear{font-size:12px;color:var(--ink-dim);cursor:pointer;background:none;border:none;text-decoration:underline;}
+.status.empty{color:var(--ink-dim);}
+
+/* mini-map overlay */
+.minimap{
+  position:absolute;right:18px;bottom:18px;width:188px;z-index:14;
+  background:rgba(22,18,15,.85);border:1px solid var(--line);border-radius:13px;
+  padding:10px;backdrop-filter:blur(8px);box-shadow:0 16px 34px -20px #000;
+}
+.minimap .mm-h{display:flex;justify-content:space-between;align-items:center;margin:0 2px 7px;}
+.minimap .mm-h .mm-title{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);}
+.minimap .mm-h .mm-right{display:flex;align-items:center;gap:8px;}
+.minimap .mm-h .mm-right .mm-lit{font-size:10px;letter-spacing:.04em;color:var(--gold-soft);}
+.mm-toggle{width:20px;height:20px;display:flex;align-items:center;justify-content:center;line-height:0;
+  font:700 14px/1 var(--ui);color:var(--ink-soft);cursor:pointer;
+  background:#211c17;border:1px solid var(--line);border-radius:6px;padding:0;}
+.mm-toggle:hover{color:var(--ink);border-color:#54483a;}
+.minimap.min{width:auto;padding:8px 10px;}
+.minimap.min .mm-h{margin-bottom:0;}
+.minimap.min .plan-svg{display:none;}
+.minimap.hide{display:none;}
+
+/* =======================================================================
+   BOOKCASE + SHELF  (shared)
+   ======================================================================= */
+.bookcase{position:relative;border-radius:3px;
+  background:linear-gradient(100deg,#5a3a20,#6b4324 30%,#5a3a20 70%,#4a2f19);
+  box-shadow:0 18px 30px -20px #000, 0 2px 0 #2e1c0e inset;
+  filter:saturate(1.02);}
+.bc-cap{position:absolute;left:0;right:0;top:0;height:12px;border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,#8a5a30,#5d3a1f);box-shadow:0 2px 4px -2px #000 inset;}
+.bc-plinth{position:absolute;left:0;right:0;bottom:0;height:16px;border-radius:0 0 3px 3px;
+  background:linear-gradient(180deg,#5d3a1f,#3c2613);box-shadow:0 -2px 4px -2px #000 inset;}
+.bc-side{position:absolute;top:12px;bottom:16px;width:9px;background:linear-gradient(90deg,#6e4626,#4d2f18);}
+.bc-side-l{left:0;}
+.bc-side-r{right:0;background:linear-gradient(270deg,#6e4626,#4d2f18);}
+.bc-stack{position:absolute;top:12px;bottom:16px;left:9px;right:9px;
+  background:linear-gradient(90deg,#241710,#2c1d12 50%,#241710);
+  display:flex;flex-direction:column;}
+.bc-range{position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
+  font-family:var(--mono);font-size:9px;font-weight:700;color:#e8cfa6;letter-spacing:.05em;
+  opacity:.75;pointer-events:none;text-shadow:0 1px 1px #000;}
+.bookcase.has-active{box-shadow:0 18px 30px -16px #000,0 0 0 2px #f3b53f55,0 0 30px -4px #f3b53f55;}
+
+.shelf{position:relative;display:flex;flex-direction:column;justify-content:flex-end;
+  transition:filter .25s,opacity .25s;}
+.shelf-books{display:flex;align-items:flex-end;gap:1px;padding:0 6px 0 16px;overflow:hidden;}
+.spine{position:relative;flex:0 0 auto;border-radius:1px 1px 0 0;align-self:flex-end;
+  box-shadow:inset -1px 0 0 rgba(0,0,0,.28), inset 1px 0 0 rgba(255,255,255,.10);
+  background-clip:padding-box;}
+.spine::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;
+  background:rgba(255,255,255,.16);}
+.spine.banded::after{content:"";position:absolute;left:1px;right:1px;top:30%;height:18%;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.22) 0 1px,transparent 1px 4px);}
+.shelf-board{height:5px;background:linear-gradient(180deg,#8a5a30,#5a3a20);
+  box-shadow:0 -3px 6px -4px #000;}
+.shelf-num{position:absolute;left:3px;top:50%;transform:translateY(-50%);
+  font-family:var(--mono);font-size:10px;font-weight:700;color:#caa869;
+  text-shadow:0 1px 1px #000;pointer-events:none;transition:all .2s;z-index:3;}
+.shelf-glow{position:absolute;inset:0;border-radius:2px;pointer-events:none;
+  opacity:0;transition:opacity .25s;}
+
+/* highlight states */
+.shelf.is-dim{filter:brightness(.42) saturate(.55);}
+.shelf.is-active{filter:none;}
+.shelf.is-active .shelf-glow{opacity:1;
+  box-shadow:inset 0 0 0 2px var(--gold), inset 0 0 26px -2px #f3b53f88,
+             0 0 18px -2px #f3b53faa;
+  background:linear-gradient(0deg,#f3b53f14,#ffd98a18);
+  animation:pulse 1.6s ease-in-out infinite;}
+.shelf.is-active .shelf-num{
+  left:3px;color:#23190b;font-size:11px;background:var(--gold);
+  padding:2px 5px;border-radius:6px;box-shadow:0 0 0 2px #fff5db66,0 2px 6px -1px #000;}
+@keyframes pulse{0%,100%{box-shadow:inset 0 0 0 2px var(--gold),inset 0 0 26px -2px #f3b53f88,0 0 12px -2px #f3b53f88;}
+  50%{box-shadow:inset 0 0 0 2px var(--gold-soft),inset 0 0 30px 0 #f3b53faa,0 0 26px 0 #f3b53fcc;}}
+@media (prefers-reduced-motion:reduce){.shelf.is-active .shelf-glow{animation:none;}}
+
+/* =======================================================================
+   3D ROOM
+   ======================================================================= */
+.stage3{position:absolute;inset:0;perspective:1500px;perspective-origin:50% 42%;
+  transition:perspective-origin .4s;}
+.stage3.is-inside{perspective-origin:50% 56%;}
+.stage3{
+  cursor:grab;touch-action:none;background:
+    radial-gradient(130% 100% at 50% 8%, #322b23 0%, #211c17 55%, #15110d 100%);}
+.stage3:active{cursor:grabbing;}
+.scene3{position:absolute;left:50%;top:54%;width:0;height:0;transform-style:preserve-3d;}
+.scene3>*{position:absolute;left:0;top:0;transform-style:preserve-3d;}
+.wall3{position:absolute;backface-visibility:hidden;transform-style:preserve-3d;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"),
+    linear-gradient(180deg,#efe5d0,#ddceb1);
+  background-size:180px 180px, cover;
+  background-blend-mode:soft-light, normal;
+  box-shadow:inset 0 0 80px -20px rgba(90,60,30,.32);}
+.floor3{position:absolute;backface-visibility:hidden;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.6' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg, #7c5631 0 44px, #6f4c29 44px 46px),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 70px, rgba(255,255,255,.025) 70px 150px),
+    linear-gradient(180deg,#875d34,#684627);
+  background-size:200px 200px, auto, auto, cover;
+  background-blend-mode:soft-light, normal, normal, normal;
+  box-shadow:inset 0 0 160px 0 rgba(0,0,0,.28);}
+.rug3{border-radius:50%;background:radial-gradient(closest-side,#5a3a5233,transparent);}
+.ceil3{position:absolute;backface-visibility:hidden;
+  background:linear-gradient(180deg,#efe9dc,#e2d8c4);
+  box-shadow:inset 0 0 120px -20px rgba(80,55,28,.4);}
+.wall3.behind{opacity:0 !important;pointer-events:none;}
+.wall-bc{position:absolute;transform-style:preserve-3d;}
+
+.window3{position:absolute;background:linear-gradient(180deg,var(--sky1),var(--sky2));
+  border:6px solid #efe5d0;box-shadow:0 0 0 2px #b9a884,inset 0 0 18px -4px #6fb4d6;}
+.window3 span{position:absolute;background:#ffffff66;}
+.window3 span:nth-child(1){left:50%;top:0;bottom:0;width:4px;margin-left:-2px;}
+.window3 span:nth-child(2){top:50%;left:0;right:0;height:4px;margin-top:-2px;}
+.door3{position:absolute;background:linear-gradient(90deg,#b9935f,#caa877);
+  border:4px solid #8a6c42;border-radius:2px;box-shadow:inset 0 0 0 6px #c4a06c, inset 0 0 24px -6px #6b5132;}
+.door3 .knob{position:absolute;right:12px;top:50%;width:7px;height:7px;border-radius:50%;
+  background:#e8c873;box-shadow:0 0 0 2px #9a7a2e;}
+
+.box{position:absolute;transform-style:preserve-3d;}
+.box .bx{position:absolute;left:0;top:0;}
+
+/* ---- furniture materials ---- */
+/* wood grain texture, reused on every wooden face */
+.box.wood-top .bx,.box.wood .bx{background:#a9894f;}
+.box.wood-top .top{background:
+  repeating-linear-gradient(90deg, rgba(60,35,12,.10) 0 3px, transparent 3px 7px, rgba(255,240,210,.06) 7px 9px, transparent 9px 26px),
+  repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 22px, rgba(255,255,255,.05) 22px 24px),
+  linear-gradient(180deg,#c9ae77,#ad8e57);}
+.box.wood-top .front,.box.wood-top .back{background:
+  repeating-linear-gradient(180deg, rgba(60,35,12,.10) 0 2px, transparent 2px 6px, rgba(255,240,210,.05) 6px 8px, transparent 8px 22px),
+  linear-gradient(180deg,#bd9f68,#9c7f4c);}
+.box.wood-top .left,.box.wood-top .right,.box.wood .left,.box.wood .right{background:linear-gradient(180deg,#a98a52,#7f6238);}
+.box.wood .front,.box.wood .back{background:
+  repeating-linear-gradient(180deg, rgba(60,35,12,.10) 0 2px, transparent 2px 6px, rgba(255,240,210,.04) 6px 8px, transparent 8px 22px),
+  linear-gradient(180deg,#b1925a,#8d7042);}
+.box.wood .top{background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 18px, rgba(255,255,255,.045) 18px 20px),
+  linear-gradient(180deg,#c0a067,#a3854f);}
+
+/* ---- modern monitor monitors (the dual-display setup) ---- */
+.box.panel .bx{background:#1b1c1f;}
+.box.panel .top,.box.panel .left,.box.panel .right,.box.panel .back{background:linear-gradient(180deg,#26282c,#17181b);}
+.box.panel .front{
+  background:linear-gradient(160deg,#2b3a44 0%,#1d2932 55%,#13202a 100%);
+  box-shadow:inset 0 0 0 3px #101215, inset 0 0 24px 2px rgba(0,0,0,.55), 0 0 16px -6px #3a5e6e;}
+.box.panel .front::after{content:"";position:absolute;inset:3px;
+  background:linear-gradient(150deg, rgba(150,190,220,.20) 0%, rgba(70,100,130,.05) 38%, rgba(255,255,255,.05) 100%);}
+.box.panel-stand .bx{background:#1c1d20;}
+.box.panel-stand .top,.box.panel-stand .front,.box.panel-stand .back{background:linear-gradient(180deg,#303236,#1e1f22);}
+
+/* ---- a desktop computer base unit (beige, twin 5.25in floppy bays) ---- */
+.box.computer .bx{background:#cfc4a3;}
+.box.computer .top{background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.045) 0 30px, rgba(255,255,255,.06) 30px 32px),
+  linear-gradient(180deg,#ddd2b1,#c7bc99);}
+.box.computer .left,.box.computer .right,.box.computer .back{background:linear-gradient(180deg,#cabf9d,#b1a684);}
+.box.computer .front{background:linear-gradient(180deg,#d9cead,#c2b691);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), inset 0 0 16px rgba(90,70,40,.10);}
+/* two stacked 5.25" drive bays on the front-right, each with a disk slot */
+.box.computer .front::before,.box.computer .front::after{content:"";position:absolute;right:7%;width:34%;height:30%;border-radius:1.5px;
+  background:
+    linear-gradient(180deg, transparent 0 40%, #211e19 40% 54%, transparent 54% 100%),
+    linear-gradient(180deg,#d2c7a6,#b9ae8a);
+  box-shadow:inset 0 0 0 1px rgba(60,45,20,.30), inset 0 1px 0 rgba(255,255,255,.5);}
+.box.computer .front::before{top:14%;}
+.box.computer .front::after{bottom:14%;}
+
+/* ---- desktop PC-CM colour monitor (beige CRT that sits on the base) ---- */
+.box.computer-mon .bx{background:#cfc4a3;}
+.box.computer-mon .top,.box.computer-mon .left,.box.computer-mon .right,.box.computer-mon .back{background:linear-gradient(180deg,#d4c9a8,#bcb18d);}
+.box.computer-mon .front{
+  background:radial-gradient(118% 105% at 50% 42%, #45565d 0%, #28363c 52%, #161f23 100%);
+  box-shadow:inset 0 0 0 9px #cdc2a0, inset 0 0 0 11px #a89d7c, inset 0 0 20px 3px rgba(0,0,0,.6), 0 0 14px -5px #5a8d82;}
+.box.computer-mon .front::after{content:"";position:absolute;inset:11px;
+  background:repeating-linear-gradient(180deg, rgba(255,255,255,.05) 0 2px, transparent 2px 4px);
+  box-shadow:inset 0 0 16px 2px rgba(120,180,170,.16);}
+
+/* ---- keyboards ---- */
+.box.keyboard .bx{background:#2a2c30;}
+.box.keyboard .front,.box.keyboard .back,.box.keyboard .left,.box.keyboard .right{background:linear-gradient(180deg,#303236,#212327);}
+.box.keyboard .top{background:
+  repeating-linear-gradient(90deg, rgba(0,0,0,.42) 0 1px, transparent 1px 11px),
+  repeating-linear-gradient(0deg, rgba(0,0,0,.42) 0 1px, transparent 1px 9px),
+  linear-gradient(180deg,#35383d,#26282c);}
+.box.computer-kbd .bx{background:#cabf9d;}
+.box.computer-kbd .front,.box.computer-kbd .back,.box.computer-kbd .left,.box.computer-kbd .right{background:linear-gradient(180deg,#cdc2a1,#b6ab88);}
+.box.computer-kbd .top{background:
+  repeating-linear-gradient(90deg, rgba(70,55,25,.30) 0 1px, transparent 1px 10px),
+  repeating-linear-gradient(0deg, rgba(70,55,25,.30) 0 1px, transparent 1px 8px),
+  linear-gradient(180deg,#d8cdac,#c2b691);}
+
+/* ---- old cast-iron column radiator (graphite / anthracite) ---- */
+.box.radiator .bx{background:#2a2c2e;}
+.box.radiator .top{background:linear-gradient(180deg,#3c3f42,#24262a);border-radius:3px;}
+.box.radiator .front,.box.radiator .back,.box.radiator .left,.box.radiator .right{
+  background:repeating-linear-gradient(90deg,
+    #161719 0px, #303437 4px, #474b4f 9px, #2c2f33 14px, #161719 18px);
+  box-shadow:inset 0 7px 9px -6px rgba(255,255,255,.14), inset 0 -8px 12px -7px rgba(0,0,0,.55);}
+.box.radiator .front::before,.box.radiator .back::before{content:"";position:absolute;left:0;right:0;top:6px;height:8px;
+  background:linear-gradient(180deg,#43474b,#26282b);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.5);}
+.box.radiator .front::after,.box.radiator .back::after{content:"";position:absolute;left:0;right:0;bottom:6px;height:8px;
+  background:linear-gradient(180deg,#2c2f33,#16171a);border-radius:4px;box-shadow:0 1px 2px rgba(0,0,0,.5);}
+
+.box.chair-leg .bx{background:#2c2c30;}
+.box.chair-leg .top{background:linear-gradient(180deg,#3c3c42,#26262a);}
+.box.caster .bx{background:#161618;border-radius:3px;}
+.box.chair-post .bx{background:linear-gradient(90deg,#46464c,#2a2a2e);}
+.box.chair-post .top{background:#4a4a50;}
+.box.chair-arm-post .bx{background:#1f1f23;}
+
+.box.aeron-seat .bx{background:#262629;}
+.box.aeron-seat .top{
+  background:
+    radial-gradient(circle at 1.5px 1.5px, rgba(255,255,255,.09) .6px, transparent 1.1px) 0 0/5px 5px,
+    radial-gradient(120% 150% at 50% 25%, #34343a, #1c1c20);
+  border-radius:10px;}
+.box.aeron-seat .front,.box.aeron-seat .back{background:linear-gradient(180deg,#303036,#202024);}
+.box.aeron-arm .bx{background:#1d1d21;}
+.box.aeron-arm .top{background:linear-gradient(180deg,#34343a,#222226);border-radius:5px;}
+
+.box.aeron-back .bx{background:#26262b;}
+.box.aeron-back .front,.box.aeron-back .back{
+  background:
+    radial-gradient(circle at 2px 2px, rgba(255,255,255,.13) .8px, transparent 1.5px) 0 0/6px 6px,
+    linear-gradient(180deg,#33333a 0%, #2a2a30 50%, #303037 100%);
+  box-shadow:inset 0 0 0 5px #17171c, inset 0 0 26px 2px rgba(0,0,0,.55);
+  border-radius:22px 22px 14px 14px;}
+.box.aeron-back .left,.box.aeron-back .right{background:#1a1a1f;}
+.box.aeron-back .top{background:#222228;border-radius:10px;}
+.box.aeron-lumbar .bx{background:#16161a;border-radius:8px;}
+.hint3{position:absolute;left:18px;bottom:18px;font-size:11px;letter-spacing:.14em;
+  text-transform:uppercase;color:#7a6f5d;pointer-events:none;}
+.cam-toggle{position:absolute;right:18px;top:18px;z-index:7;display:flex;gap:4px;
+  background:rgba(22,18,15,.72);border:1px solid var(--line);border-radius:9px;padding:4px;backdrop-filter:blur(6px);}
+.cam-toggle button{font:600 11px/1 var(--ui);color:var(--ink-soft);background:transparent;
+  border:none;border-radius:6px;padding:7px 11px;cursor:pointer;}
+.cam-toggle button.on{color:#23190b;background:linear-gradient(180deg,var(--gold-soft),var(--gold));}
+.snap-row{position:absolute;left:18px;top:18px;display:flex;gap:6px;z-index:6;}
+.snap{font:600 11px/1 var(--ui);color:var(--ink-soft);background:rgba(22,18,15,.7);
+  border:1px solid var(--line);border-radius:7px;padding:7px 10px;cursor:pointer;backdrop-filter:blur(6px);}
+.snap:hover{color:var(--ink);border-color:#54483a;}
+.snap.on{color:#23190b;background:linear-gradient(180deg,var(--gold-soft),var(--gold));border-color:transparent;}
+
+/* =======================================================================
+   WALL ELEVATIONS
+   ======================================================================= */
+.elev-wrap{position:absolute;inset:0;display:flex;flex-direction:column;padding-bottom:60px;
+  background:radial-gradient(120% 90% at 50% 0%, #2c261f, #1d1813 70%);}
+.elev-tabs{display:flex;gap:6px;justify-content:center;padding:16px 0 4px;}
+.elev-tab{display:flex;align-items:center;gap:8px;font:600 13px/1 var(--ui);
+  color:var(--ink-soft);background:#16120f;border:1px solid var(--line);
+  border-radius:9px;padding:9px 14px;cursor:pointer;}
+.elev-tab .dot{width:9px;height:9px;border-radius:50%;background:#6b5a3c;}
+.elev-tab .dot[data-w="back"]{background:#c08a4e;}
+.elev-tab .dot[data-w="left"]{background:#6fb4d6;}
+.elev-tab .dot[data-w="right"]{background:#caa877;}
+.elev-tab .dot[data-w="front"]{background:#8a9a6a;}
+.elev-tab.on{color:#23190b;background:linear-gradient(180deg,var(--gold-soft),var(--gold));border-color:transparent;}
+.elev-stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:14px 28px;}
+.elev-room{position:relative;transform-origin:center;}
+.elev-wall{position:absolute;left:0;top:0;border-radius:4px 4px 0 0;
+  background:linear-gradient(180deg,#efe5d0,#dccdb0);
+  box-shadow:inset 0 0 90px -20px rgba(90,60,30,.3);}
+.elev-floor{position:absolute;left:-18px;right:-18px;bottom:0;height:54px;border-radius:0 0 4px 4px;
+  background:repeating-linear-gradient(90deg,#7a5530 0 40px,#6e4a28 40px 42px),linear-gradient(180deg,#8a6038,#6b4828);
+  box-shadow:inset 0 8px 18px -10px #000;}
+.elev-bc{position:absolute;}
+.elev-caption{text-align:center;padding:10px 0 18px;color:var(--ink-soft);font-size:13px;letter-spacing:.02em;}
+.elev-caption::before{content:"";display:inline-block;width:26px;height:1px;background:var(--line);vertical-align:middle;margin-right:10px;}
+.elev-caption::after{content:"";display:inline-block;width:26px;height:1px;background:var(--line);vertical-align:middle;margin-left:10px;}
+
+/* elevation fixtures */
+.el-window{position:absolute;background:linear-gradient(180deg,var(--sky1),var(--sky2));
+  border:6px solid #f3ead6;box-shadow:0 0 0 2px #b9a884, inset 0 0 22px -4px #6fb4d6;}
+.el-window span{position:absolute;background:#ffffff70;}
+.el-window span:nth-child(1){left:33%;top:0;bottom:0;width:4px;}
+.el-window span:nth-child(2){left:66%;top:0;bottom:0;width:4px;}
+.el-window span:nth-child(3){top:50%;left:0;right:0;height:4px;}
+.el-window .el-sill{position:absolute;left:-8px;right:-8px;bottom:-12px;height:9px;background:#cdba92;border-radius:2px;}
+.el-radiator{position:absolute;display:flex;gap:0;padding:0;border-radius:5px;overflow:hidden;
+  background:repeating-linear-gradient(90deg,#161719 0px,#303437 4px,#474b4f 9px,#2c2f33 14px,#161719 18px);
+  box-shadow:0 6px 12px -8px #000, inset 0 7px 9px -6px rgba(255,255,255,.14), inset 0 -9px 12px -7px rgba(0,0,0,.55);}
+.el-radiator::before{content:"";position:absolute;left:0;right:0;top:5px;height:9px;background:linear-gradient(180deg,#43474b,#26282b);border-radius:5px;}
+.el-radiator::after{content:"";position:absolute;left:0;right:0;bottom:5px;height:9px;background:linear-gradient(180deg,#2c2f33,#16171a);border-radius:5px;}
+.el-radiator i{display:none;}
+.el-door{position:absolute;background:linear-gradient(90deg,#b9935f,#caa877);
+  border:5px solid #8a6c42;border-radius:3px 3px 0 0;}
+.el-door .panel{position:absolute;left:18px;right:18px;border:2px solid #9a7c50;border-radius:2px;background:#bd9a64;}
+.el-door .panel.p1{top:18px;height:38%;}
+.el-door .panel.p2{bottom:18px;height:38%;}
+.el-door .el-knob{position:absolute;left:14px;top:52%;width:9px;height:9px;border-radius:50%;background:#e8c873;box-shadow:0 0 0 2px #9a7a2e;}
+.el-desk{position:absolute;height:100%;}
+.el-desktop{position:absolute;left:0;right:0;bottom:80px;height:13px;border-radius:2px;
+  background:linear-gradient(180deg,#caa877,#9a7647);box-shadow:0 6px 12px -8px #000;}
+.el-leg{position:absolute;bottom:0;width:9px;height:80px;background:linear-gradient(90deg,#9a7647,#774f28);}
+.el-mon{position:absolute;border-radius:3px;background:linear-gradient(180deg,#3a3d42,#2a2c30);
+  border:2px solid #23262a;box-shadow:inset 0 0 0 3px #aeb9b0;}
+.el-mon::after{content:"";position:absolute;left:50%;bottom:-12px;width:18px;height:12px;
+  transform:translateX(-50%);background:#2a2c30;}
+.el-panel{position:absolute;border-radius:3px;
+  background:linear-gradient(160deg,#2b3a44,#13202a);border:3px solid #101215;
+  box-shadow:inset 0 0 16px 2px rgba(0,0,0,.5);}
+.el-panel::after{content:"";position:absolute;left:50%;bottom:-16px;width:8px;height:16px;transform:translateX(-50%);background:#26282c;}
+.el-panel i{position:absolute;left:50%;bottom:-20px;width:34px;height:5px;border-radius:2px;transform:translateX(-50%);background:#26282c;}
+.el-computer{position:absolute;border-radius:2px;background:linear-gradient(180deg,#d9cead,#bdb28e);border:1px solid #948a6c;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5);}
+.el-computer i{position:absolute;right:7%;width:34%;height:30%;border-radius:1.5px;
+  background:linear-gradient(180deg,transparent 0 40%,#211e19 40% 54%,transparent 54% 100%),linear-gradient(180deg,#d2c7a6,#b9ae8a);
+  box-shadow:inset 0 0 0 1px rgba(60,45,20,.3),inset 0 1px 0 rgba(255,255,255,.5);}
+.el-computer i.d1{top:14%;}
+.el-computer i.d2{bottom:14%;}
+.el-computer-mon{position:absolute;border-radius:3px;background:linear-gradient(180deg,#d4c9a8,#bcb18d);border:1px solid #a89d7c;
+  box-shadow:inset 0 0 0 8px #cdc2a0,inset 0 0 0 9px #a89d7c;}
+.el-computer-mon::after{content:"";position:absolute;inset:9px;border-radius:2px;
+  background:radial-gradient(118% 105% at 50% 42%,#45565d,#28363c 52%,#161f23);}
+.el-kbd{position:absolute;border-radius:2px;background:
+  repeating-linear-gradient(90deg,rgba(0,0,0,.4) 0 1px,transparent 1px 11px),
+  repeating-linear-gradient(0deg,rgba(0,0,0,.4) 0 1px,transparent 1px 9px),
+  linear-gradient(180deg,#35383d,#26282c);box-shadow:inset 0 0 0 1px #1f2125;}
+.el-computer-kbd{position:absolute;border-radius:2px;background:
+  repeating-linear-gradient(90deg,rgba(70,55,25,.3) 0 1px,transparent 1px 10px),
+  repeating-linear-gradient(0deg,rgba(70,55,25,.3) 0 1px,transparent 1px 8px),
+  linear-gradient(180deg,#d8cdac,#c2b691);box-shadow:inset 0 0 0 1px #a59c89;}
+.el-chair{position:absolute;bottom:0;width:64px;}
+.el-chair .seat{position:absolute;bottom:36px;left:0;width:64px;height:12px;border-radius:3px;background:#4a4a4a;}
+.el-chair .back{position:absolute;bottom:36px;left:8px;width:48px;height:54px;border-radius:6px 6px 2px 2px;background:#3c3c3c;}
+.el-chair .post{position:absolute;bottom:8px;left:28px;width:8px;height:30px;background:#2e2e2e;}
+.el-chair .foot{position:absolute;bottom:0;left:14px;width:36px;height:8px;border-radius:4px;background:#2e2e2e;}
+
+/* =======================================================================
+   FLOOR PLAN
+   ======================================================================= */
+.plan-view{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:26px;background:radial-gradient(120% 90% at 50% 0%, #2c261f, #1c1712 70%);}
+.plan-svg{width:auto;height:100%;max-width:100%;}
+.plan-svg.compact{width:100%;height:auto;}
+.pl-floor{fill:#efe7d6;}
+.pl-walls{fill:none;stroke:#3a2c1c;stroke-width:7;}
+.pl-window{fill:url(#none);fill:#bfe6f5;stroke:#6fa9c4;stroke-width:1.5;}
+.pl-radiator{fill:#2c2f33;stroke:#16171a;stroke-width:1;}
+.pl-door{fill:#c4a87c;stroke:#8b7355;stroke-width:1.5;}
+.pl-furn .pl-desk{fill:#e7d8bb;stroke:#9a865f;stroke-width:1.5;}
+.pl-furn .pl-pc{fill:#d6cbab;stroke:#948a6c;stroke-width:1;}
+.pl-furn .pl-mon{fill:#c2cad0;stroke:#7c848a;stroke-width:1;}
+.pl-furn .pl-kbd{fill:#e6e2d8;stroke:#a59c89;stroke-width:1;}
+.pl-furn .pl-chair{fill:#cfcfcf;stroke:#7a7a7a;stroke-width:1.5;}
+.pl-bc rect{fill:#cdebd6;stroke:#2d5f3e;stroke-width:2;cursor:pointer;transition:fill .2s;}
+.pl-bc:hover rect{fill:#b9e4c7;}
+.pl-bc .pl-label{fill:#1b3d28;font:700 15px var(--mono);text-anchor:middle;dominant-baseline:central;pointer-events:none;}
+.pl-bc.on rect{fill:#fff0cf;stroke:#caa11e;}
+.pl-bc.on .pl-label{fill:#7a5a08;}
+.pl-ring{fill:none !important;stroke:var(--gold);stroke-width:3;
+  filter:drop-shadow(0 0 6px #f3b53f);animation:plpulse 1.6s ease-in-out infinite;}
+@keyframes plpulse{0%,100%{opacity:.55;}50%{opacity:1;}}
+.plan-svg.compact .pl-label{font-size:19px;}
+.plan-svg.compact .pl-furn{opacity:.85;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#2b2520"/>
+    <rect x="20" y="22" width="60" height="56" rx="3" fill="#6b4324"/>
+    <rect x="26" y="30" width="48" height="9" fill="#caa877"/>
+    <rect x="26" y="44" width="48" height="9" fill="#f3b53f"/>
+    <rect x="26" y="58" width="48" height="9" fill="#5d6b3e"/>
+  </svg>
+</template>
+
+<script src="vendor/react.development.js"></script>
+<script src="vendor/react-dom.development.js"></script>
+<script src="vendor/babel.min.js"></script>
+
+<script src="lib.js"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="floorplan.jsx"></script>
+<script type="text/babel" src="walls.jsx"></script>
+<script type="text/babel" src="room3d.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+// fit an elevation room to its stage
+function useFit(ref, depKey){
+  useEffect(()=>{
+    const el = ref.current; if(!el) return;
+    const fit = ()=>{
+      const room = el.querySelector(".elev-room"); if(!room) return;
+      const pad = 56;
+      const aw = el.clientWidth - pad, ah = el.clientHeight - pad - 70;
+      const rw = room.offsetWidth, rh = room.offsetHeight;
+      const s = Math.min(aw/rw, ah/rh, 1.32);
+      room.style.transform = `scale(${s})`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit); ro.observe(el);
+    return ()=>ro.disconnect();
+  }, [depKey]);
+}
+
+function WallView({active, wall, setWall}){
+  const ref = useRef(null);
+  useFit(ref, wall);
+  return (
+    <div className="view" ref={ref}>
+      <WallElevation active={active} wall={wall} setWall={setWall} />
+    </div>
+  );
+}
+
+const WALL_NAME = { back:"North", front:"South", left:"East", right:"West" };
+
+function App(){
+  const [active, setActive] = useState(()=> new Set(LIB.parseShelves(new URLSearchParams(location.search).get("shelf"))));
+  const [view, setView] = useState("3d");
+  const [wall, setWall] = useState("back");
+  const [face, setFace] = useState(()=>({wall:"back", tick:0}));
+  const [camMode, setCamMode] = useState("inside");
+  const [q, setQ] = useState("");
+  const [mmMin, setMmMin] = useState(true);   // overview minimized by default
+  const tick = useRef(0);
+
+  // apply a new highlight set + aim the camera/elevation/plan at it
+  const apply = useCallback((nums, opts={})=>{
+    const set = new Set(nums);
+    setActive(set);
+    if(nums.length){
+      const w = LIB.SHELVES[nums[0]].bc.wall;
+      tick.current += 1;
+      setFace({wall:w, tick:tick.current});
+      setWall(w);
+    }
+    // sync URL
+    const url = new URL(location.href);
+    if(nums.length) url.searchParams.set("shelf", nums.join(",")); else url.searchParams.delete("shelf");
+    history.replaceState(null,"",url);
+  },[]);
+
+  // external API + messaging
+  useEffect(()=>{
+    window.LibraryMap = {
+      highlight:(s)=>apply(LIB.parseShelves(Array.isArray(s)?s.join(","):s)),
+      clear:()=>apply([]),
+      show:(v)=>{ if(["3d","walls","plan"].includes(v)) setView(v); },
+      version:"1.0",
+    };
+    const onMsg=(e)=>{
+      const d=e.data; if(!d||typeof d!=="object") return;
+      if(d.type==="library-map" || d.type==="highlightShelf" || d.type==="highlightShelves"){
+        const raw = d.shelves!=null ? d.shelves : d.shelf;
+        apply(LIB.parseShelves(Array.isArray(raw)?raw.join(","):raw));
+        if(d.view) setView(d.view);
+      }
+    };
+    const onPop=()=>setActive(new Set(LIB.parseShelves(new URLSearchParams(location.search).get("shelf"))));
+    window.addEventListener("message",onMsg);
+    window.addEventListener("popstate",onPop);
+    return ()=>{ window.removeEventListener("message",onMsg); window.removeEventListener("popstate",onPop); };
+  },[apply]);
+
+  // if loaded with a shelf already, aim at it once
+  useEffect(()=>{
+    const nums=[...active].sort((a,b)=>a-b);
+    if(nums.length){ const w=LIB.SHELVES[nums[0]].bc.wall; tick.current+=1; setFace({wall:w,tick:tick.current}); setWall(w); }
+  // eslint-disable-next-line
+  },[]);
+
+  const submit=(e)=>{ e.preventDefault(); const nums=LIB.parseShelves(q); apply(nums); };
+
+  const activeNums=[...active].sort((a,b)=>a-b);
+  const pickWall=(w)=>{ tick.current+=1; setFace({wall:w,tick:tick.current}); setWall(w); };
+
+  return (
+    <React.Fragment>
+      <div className="topbar">
+        <div className="brand"><b>Library Map</b><small>Example Room · 66 shelves</small></div>
+        <div className="search">
+          <form onSubmit={submit}>
+            <input value={q} onChange={(e)=>setQ(e.target.value)}
+              placeholder="shelf #  e.g. 42  ·  7,12  ·  33-36" />
+            <button className="btn" type="submit">Find</button>
+            {activeNums.length>0 && <button type="button" className="btn ghost" onClick={()=>{setQ("");apply([]);}}>Clear</button>}
+          </form>
+        </div>
+        <div className="tabs">
+          {[["3d","Room"],["walls","Walls"],["plan","Plan"]].map(([k,l])=>(
+            <button key={k} className={"tab"+(view===k?" on":"")} onClick={()=>setView(k)}>{l}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="stage">
+        {view==="3d" && (
+          <div className="view">
+            <div className="snap-row">
+              {["back","right","front","left"].map(w=>(
+                <button key={w} className={"snap"+(face.wall===w?" on":"")} onClick={()=>pickWall(w)}>{WALL_NAME[w]}</button>
+              ))}
+            </div>
+            <Room3D active={active} face={face} mode={camMode} setMode={setCamMode} />
+          </div>
+        )}
+        {view==="walls" && <WallView active={active} wall={wall} setWall={setWall} />}
+        {view==="plan" && (
+          <div className="view plan-view"><FloorPlan active={active} onPick={(w,n)=>pickWall(w)} /></div>
+        )}
+
+        {/* mini-map (hidden on plan tab) */}
+        <div className={"minimap"+(view==="plan"?" hide":"")+(mmMin?" min":"")}>
+          <div className="mm-h">
+            <span className="mm-title">Overview</span>
+            <span className="mm-right">
+              {activeNums.length>0 && <span className="mm-lit">{activeNums.length} lit</span>}
+              <button className="mm-toggle" title={mmMin?"Expand overview":"Minimize overview"}
+                      onClick={()=>setMmMin(m=>!m)}>{mmMin?"+":"\u2013"}</button>
+            </span>
+          </div>
+          {!mmMin && <FloorPlan active={active} onPick={(w,n)=>{ setView(view==="walls"?"walls":"3d"); pickWall(w); }} compact />}
+        </div>
+
+        {/* status / results */}
+        {activeNums.length>0 ? (
+          <div className="status">
+            <span className="lab">Highlighting</span>
+            {activeNums.slice(0,12).map(n=>(
+              <button key={n} className="chip" onClick={()=>pickWall(LIB.SHELVES[n].bc.wall)}>
+                {n}<span className="w">{WALL_NAME[LIB.SHELVES[n].bc.wall]}</span>
+              </button>
+            ))}
+            {activeNums.length>12 && <span className="lab">+{activeNums.length-12} more</span>}
+            <button className="clear" onClick={()=>{setQ("");apply([]);}}>clear</button>
+          </div>
+        ) : (
+          <div className="status empty">
+            <span className="lab">Search a shelf number, or open with <b style={{fontFamily:"var(--mono)",color:"#caa869"}}>?shelf=42</b></span>
+          </div>
+        )}
+      </div>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("app")).render(<App/>);
+</script>
+</body>
+</html>

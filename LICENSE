@@ -1,0 +1,156 @@
+Library of Alexandria — Personal, Non-Commercial Home-Use License
+Version 1.0
+
+Copyright (c) 2026 Konstantinos Bonikos. All rights reserved.
+
+IMPORTANT: This is NOT an "open source" or "free software" license. The source
+code is published so that it can be USED for personal home purposes (below) and
+INSPECTED for security. All other rights are reserved by the Licensor. If your
+intended use is not clearly and entirely within the "Permitted Use" section,
+you must obtain a separate written license from the Licensor first (see
+"Other Licenses").
+
+-------------------------------------------------------------------------------
+0. DEFINITIONS
+
+"Software" means this software and all files in this repository, including the
+source code, assets, and documentation, and any modified version of them.
+
+"Licensor" means Konstantinos Bonikos.
+
+"You" means an individual natural person exercising rights under this License.
+
+"Organization" means any legal entity or any group of persons other than a
+single individual, including, without limitation, any company, partnership,
+sole proprietorship, employer, government or government body, school,
+university, research institute, library, club, association, religious body,
+charity, non-profit, or other institution, whether operated for profit or not.
+
+"Personal Home Use" means use by You, as a private individual, solely to
+catalogue and manage Your own personal book collection in Your own home or
+household, for Your own private benefit, with no commercial purpose and not on
+behalf of, for the benefit of, or as part of the activities of any Organization.
+
+-------------------------------------------------------------------------------
+1. PERMITTED USE (no separate license required)
+
+Subject to the conditions in Section 2, the Licensor grants You a worldwide,
+royalty-free, non-exclusive, non-transferable, revocable license to:
+
+  (a) use and run the Software for Your Personal Home Use;
+  (b) make and keep copies of the Software for Your own Personal Home Use and
+      for backup;
+  (c) modify the Software and run Your modified version for Your own Personal
+      Home Use; and
+  (d) view, read, compile, and inspect the source code for the purpose of
+      evaluating its security, privacy, and correctness ("Security Review"),
+      including running it in a private, non-production test environment for
+      that purpose only.
+
+No other rights are granted.
+
+-------------------------------------------------------------------------------
+2. CONDITIONS
+
+Your rights under Section 1 are conditioned on all of the following:
+
+  (a) You keep this LICENSE file, the copyright notice, and all notices intact
+      in every copy You make.
+  (b) You do not remove, obscure, or alter any authorship or license notices.
+  (c) You comply with Section 3 (Excluded Uses).
+
+If You breach any condition, Your rights under this License terminate
+automatically (see Section 6).
+
+-------------------------------------------------------------------------------
+3. EXCLUDED USES (a separate written license from the Licensor is REQUIRED)
+
+Without a prior, separate, written license from the Licensor, You may NOT, and
+You may not allow anyone else to:
+
+  (a) use the Software for any commercial purpose, or for any purpose that is
+      intended for or directed toward commercial advantage or monetary
+      compensation;
+  (b) use the Software by, for, on behalf of, or as part of the activities of
+      any Organization (this expressly includes non-profits, charities,
+      religious bodies, schools, universities, libraries, clubs, associations,
+      governments, and employers), whether or not money changes hands;
+  (c) use the Software to provide any product or service to any other person or
+      Organization, whether paid or free, including hosting, "software as a
+      service", managed, multi-tenant, or shared deployments, or operating it
+      for the benefit of anyone other than Yourself;
+  (d) distribute, publish, sublicense, sell, rent, lease, lend, or otherwise
+      make the Software (original or modified) available to any other person or
+      Organization. You may instead direct others to the Licensor's official
+      repository so they can obtain their own copy under this License;
+  (e) use the Software in any production environment that is accessible to, or
+      operated for, persons other than You and the members of Your own
+      household.
+
+The activities in this Section 3 are permitted ONLY under a separate license
+granted by the Licensor in writing.
+
+-------------------------------------------------------------------------------
+4. NO OTHER RIGHTS; RESERVATION
+
+All rights not expressly granted in Section 1 are reserved by the Licensor.
+This License does not grant You any rights to the Licensor's trademarks,
+service marks, trade names, or logos. No patent rights are granted except the
+limited implied rights strictly necessary to exercise the Permitted Use in
+Section 1; the Licensor expressly reserves all other patent rights.
+
+-------------------------------------------------------------------------------
+5. THIRD-PARTY COMPONENTS
+
+The Software may include or depend on third-party components that are provided
+under their own licenses. Those components remain governed by their respective
+licenses, and nothing in this License limits Your rights or obligations under
+them.
+
+-------------------------------------------------------------------------------
+6. TERMINATION
+
+This License and all rights granted under it terminate automatically if You
+breach it. Upon termination, You must stop using the Software and destroy all
+copies in Your possession or control (except that You may retain copies solely
+to the extent required by law). The Licensor may also terminate or change the
+terms offered for future copies at any time; such changes do not retroactively
+affect copies You already obtained, but continued use after a breach is not
+permitted. Sections 0, 3, 4, 7, 8, and 9 survive termination.
+
+-------------------------------------------------------------------------------
+7. NO WARRANTY
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+-------------------------------------------------------------------------------
+8. LIMITATION OF LIABILITY
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL THE LICENSOR BE LIABLE
+FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR
+THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-------------------------------------------------------------------------------
+9. GENERAL
+
+This License is the entire agreement between You and the Licensor regarding the
+Software. If any provision is held unenforceable, it shall be modified to the
+minimum extent necessary to make it enforceable, and the remaining provisions
+stay in effect. Failure to enforce any provision is not a waiver of it.
+
+-------------------------------------------------------------------------------
+OTHER LICENSES
+
+For any use outside the Permitted Use in Section 1 — including any commercial,
+business, institutional, charitable, non-profit, educational, or service use —
+please contact the Licensor to arrange a license:
+
+    Konstantinos Bonikos
+    k.bonikos@protonmail.ch
+
+In short: use this for your own personal book library at home, for
+non-commercial, non-business, non-charity purposes, and nothing else. For
+anything else, please get in touch.

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0e14">
+  <title>Library of Alexandria</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/icons/icon-32.png?v=2">
+  <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png?v=2">
+  <link rel="apple-touch-icon" href="/static/icons/icon-180.png?v=2">
+  <!-- Skin set the chosen theme BEFORE CSS paints, to avoid a flash. -->
+  <script>
+    (function () {
+      try {
+        var s = localStorage.getItem("loa-skin") || "cupertino";
+        document.documentElement.setAttribute("data-theme", s);
+      } catch (e) { document.documentElement.setAttribute("data-theme", "cupertino"); }
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/css/fonts.css">
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <!-- login gate (visible by default; hidden once auth check passes) -->
+  <div id="login-overlay" class="overlay">
+    <form id="login-form" class="login-card">
+      <div class="title">LIBRARY OF ALEXANDRIA</div>
+      <div class="subtitle">sign in</div>
+      <label for="login-user">Username</label>
+      <input id="login-user" autocomplete="username" autocapitalize="none">
+      <label for="login-pass">Password</label>
+      <input id="login-pass" type="password" autocomplete="current-password">
+      <button class="btn primary big" type="submit">Sign in</button>
+      <div id="login-status" class="status hidden"></div>
+    </form>
+  </div>
+
+
+  <header class="topbar">
+    <div class="title">LIBRARY OF ALEXANDRIA</div>
+    <div class="subtitle">personal book catalog · physical &amp; electronic</div>
+    <button id="logout-btn" class="logout hidden" title="Sign out">⎋ <span id="who"></span></button>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-view="add">＋ Add</button>
+    <button class="tab" data-view="library">▦ Library</button>
+    <button class="tab" data-view="detail">📖 Detail</button>
+    <button class="tab" data-view="collections">▤ Collections</button>
+    <button class="tab" data-view="wishlist">★ Wishlist</button>
+    <button class="tab" data-view="enrich">✦ Enrich</button>
+    <button class="tab" data-view="stats">📊 Stats</button>
+    <button class="tab" data-view="metadata">🛠 E-book Metadata Quality</button>
+    <button class="tab" data-view="admin">⚙ Admin</button>
+  </nav>
+
+  <main class="container">
+
+    <!-- ============================ ADD / EDIT ============================ -->
+    <section id="view-add" class="view">
+      <div class="card hidden" id="edit-banner">
+        <b>Editing:</b> <span id="edit-title"></span>
+        <button class="btn" id="edit-cancel">Cancel edit</button>
+      </div>
+      <div class="card" id="dest-card">
+        <h2>Add to</h2>
+        <div class="seg" id="dest">
+          <button class="seg-btn active" data-dest="library">My Library (I own it)</button>
+          <button class="seg-btn" data-dest="wishlist">Wishlist (I want it)</button>
+        </div>
+        <small id="dest-hint">A copy you own — recorded with location, condition, price paid…</small>
+      </div>
+
+      <div class="card">
+        <h2>Identify the book</h2>
+        <label for="isbn">ISBN</label>
+        <input id="isbn" inputmode="numeric" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn" id="scan-photo-btn">📷 Scan barcode (photo)</button>
+          <button class="btn primary" id="lookup-btn">🔎 Look up ISBN</button>
+        </div>
+        <input type="file" id="photo-input" accept="image/*" capture="environment" hidden>
+
+        <div class="or-sep">— or search by title &amp; author —</div>
+        <div class="grid2">
+          <div><label for="ts-title">Title</label><input id="ts-title" autocomplete="off"></div>
+          <div><label for="ts-author">Author (optional)</label><input id="ts-author" autocomplete="off"></div>
+        </div>
+        <div class="btn-row"><button class="btn primary" id="ts-search-btn">🔎 Search title / author</button></div>
+        <div id="ts-results" class="ts-results"></div>
+
+        <label for="asin">ASIN (Amazon) — optional</label>
+        <input id="asin" placeholder="B000…" autocomplete="off">
+        <div class="hint-row">…or just fill the details below by hand.</div>
+        <div id="status" class="status hidden"></div>
+        <div id="dup-banner" class="dup-banner hidden"></div>
+      </div>
+
+      <div class="card">
+        <h2>Details</h2>
+        <div id="cover-wrap" class="cover-wrap hidden"><img id="cover" alt="cover"></div>
+        <label for="title">Title *</label>
+        <input id="title" placeholder="Title" required>
+        <label for="authors">Author(s) — one per line, "Family, Given"</label>
+        <textarea id="authors" rows="2"></textarea>
+        <div class="grid2">
+          <div><label for="publisher">Publisher</label><input id="publisher"></div>
+          <div><label for="year">Year</label><input id="year" inputmode="numeric"></div>
+          <div><label for="pages">Pages</label><input id="pages" inputmode="numeric"></div>
+          <div><label for="language">Language</label><input id="language" placeholder="English"></div>
+          <div><label for="format">Format</label><input id="format" placeholder="Paperback"></div>
+          <div><label for="list_price">List price</label><input id="list_price" inputmode="decimal"></div>
+          <div><label for="series">Series</label><input id="series"></div>
+          <div><label for="series_position">Series #</label><input id="series_position" inputmode="numeric"></div>
+        </div>
+        <label for="tags">Genre / tags (comma-separated)</label>
+        <input id="tags" placeholder="Science Fiction, Classics">
+        <label for="description">Description</label>
+        <textarea id="description" rows="3"></textarea>
+        <div class="btn-row hidden" id="delete-cover-row">
+          <button class="btn" id="delete-cover-btn">🗑 Delete book cover</button>
+        </div>
+      </div>
+
+      <div class="card" id="copy-card">
+        <h2>This copy</h2>
+        <div class="grid2">
+          <div><label for="kind">Medium</label>
+            <select id="kind"><option value="physical">Physical</option>
+              <option value="ebook">Ebook</option><option value="audio">Audio</option></select></div>
+          <div><label for="copy_type">Copy type</label>
+            <select id="copy_type"><option value="reading">Reading</option>
+              <option value="collectible">Collectible</option><option value="photocopy">Photocopy</option>
+              <option value="lending">Lending</option><option value="archive">Archive</option></select></div>
+          <div><label for="condition">Condition</label>
+            <select id="condition"><option value="">—</option><option value="new">New</option>
+              <option value="used">Used</option></select></div>
+          <div><label for="condition_grade">Grade</label>
+            <select id="condition_grade"><option value="">—</option><option>Fine</option><option>VG</option>
+              <option>Good</option><option>Fair</option><option>Poor</option></select></div>
+          <div><label for="location">Location (shelf / path)</label><input id="location" placeholder="UK 33"></div>
+          <div><label for="acquisition_price">Price paid</label><input id="acquisition_price" inputmode="decimal"></div>
+        </div>
+        <label class="chk"><input type="checkbox" id="signed"> Signed</label>
+        <label class="chk"><input type="checkbox" id="acquired_today"> Acquired Today</label>
+        <label for="copy_notes">Notes (where/when bought, anything unusual, your comments)</label>
+        <textarea id="copy_notes" rows="3"
+          placeholder="e.g. Bought 2nd-hand in Athens, May 2026; ex-library stamp; gift from N."></textarea>
+      </div>
+
+      <div class="card hidden" id="wish-card">
+        <h2>Wishlist details</h2>
+        <div class="grid2">
+          <div><label for="target_price">Target price</label><input id="target_price" inputmode="decimal"></div>
+          <div><label for="priority">Priority (1–5)</label><input id="priority" inputmode="numeric"></div>
+        </div>
+        <label for="wish_collection">Wishlist collection</label>
+        <select id="wish_collection"></select>
+        <label for="wish_notes">Notes (which shop, edition wanted…)</label>
+        <textarea id="wish_notes" rows="2"></textarea>
+      </div>
+
+      <button class="btn primary big" id="save-btn">Save</button>
+      <div id="save-status" class="status hidden"></div>
+    </section>
+
+    <!-- ============================ LIBRARY ============================ -->
+    <section id="view-library" class="view hidden wide">
+      <div class="card">
+        <div class="search-row">
+          <input id="search" placeholder="Search…" autocomplete="off">
+          <select id="search-field" title="Search in"></select>
+        </div>
+        <div class="lib-toolbar">
+          <div class="seg viewmode" id="viewmode">
+            <button class="seg-btn active" data-mode="grid">▦ Grid</button>
+            <button class="seg-btn" data-mode="list">☰ List</button>
+          </div>
+          <label class="chk"><input type="checkbox" id="review-only"> needs-review only</label>
+          <button class="btn" id="toggle-filters">⚙ Filters &amp; sort</button>
+          <button class="btn" id="select-toggle">☑ Select</button>
+          <button class="btn" id="discover-btn">🔮 Describe a book</button>
+        </div>
+        <div id="bulk-bar" class="hidden lib-toolbar">
+          <span id="bulk-count" class="hint-row">0 selected</span>
+          <select id="bulk-collection"></select>
+          <button class="btn" id="bulk-add-coll">Add to collection</button>
+          <button class="btn" id="bulk-delete">Delete</button>
+          <button class="btn" id="bulk-clear">Clear</button>
+        </div>
+        <div id="filter-panel" class="hidden">
+          <label for="sort-field">Sort by</label>
+          <div class="search-row">
+            <select id="sort-field"></select>
+            <select id="sort-dir"><option value="asc">Ascending</option><option value="desc">Descending</option></select>
+          </div>
+          <label>Filters (all must match)</label>
+          <div id="filter-rows"></div>
+          <div class="btn-row">
+            <button class="btn" id="add-filter">+ Add filter</button>
+            <button class="btn primary" id="apply-filters">Apply</button>
+            <button class="btn" id="clear-filters">Clear</button>
+          </div>
+        </div>
+        <div id="lib-count" class="hint-row"></div>
+      </div>
+      <div id="lib-list" class="lib-grid"></div>
+    </section>
+
+    <!-- ============================ DETAIL ============================ -->
+    <section id="view-detail" class="view hidden wide">
+      <div id="detail-empty" class="card hint-row">Tap a book in the Library to see its details here.</div>
+      <div id="detail-body" class="hidden">
+        <div class="detail-hero">
+          <img id="detail-cover" class="detail-cover" alt="">
+          <div class="detail-info">
+            <button class="btn" id="detail-back">‹ Back to Library</button>
+            <h1 id="detail-title"></h1>
+            <div id="detail-authors" class="detail-authors"></div>
+            <div id="detail-meta" class="detail-meta"></div>
+            <div id="detail-tags" class="detail-tags"></div>
+            <div class="btn-row" id="detail-actions"></div>
+            <div id="detail-ebooks" class="detail-ebooks"></div>
+            <div class="btn-row" id="detail-collection"></div>
+            <p id="detail-desc" class="detail-desc"></p>
+          </div>
+        </div>
+        <div class="card"><h2>Copies</h2><div id="detail-copies"></div></div>
+        <div class="card">
+          <h2>Where it is — library map</h2>
+          <div id="detail-shelf-note" class="hint-row"></div>
+          <div id="detail-map-targets" class="btn-row"></div>
+          <iframe id="libmap" class="libmap-frame" title="3D library map"></iframe>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ COLLECTIONS (library) ============================ -->
+    <section id="view-collections" class="view hidden wide">
+      <div class="card">
+        <div class="search-row">
+          <select id="coll-select"></select>
+          <button class="btn" id="coll-new">+ New collection</button>
+        </div>
+        <div id="coll-info" class="hint-row"></div>
+      </div>
+      <div id="coll-list" class="lib-grid"></div>
+    </section>
+
+    <!-- ============================ WISHLIST ============================ -->
+    <section id="view-wishlist" class="view hidden">
+      <div class="card">
+        <div class="search-row">
+          <select id="wish-coll-select"></select>
+          <button class="btn" id="wish-coll-new">+ New list</button>
+        </div>
+      </div>
+      <div id="wish-list"></div>
+    </section>
+
+    <!-- ============================ ENRICH ============================ -->
+    <section id="view-enrich" class="view hidden">
+      <div class="card" id="dq-card">
+        <h2>Data quality</h2>
+        <div class="search-row">
+          <select id="dq-field"></select>
+          <button class="btn" id="dq-values-btn">List values</button>
+          <button class="btn" id="dq-clusters-btn">Find similar</button>
+        </div>
+        <small>Pick any field, see its values with counts, and harmonise variants across the whole
+          library — e.g. <code>softcover / paperback / Paperback → Paperback</code>. "Find similar"
+          groups near-duplicates (case / spacing / typos). Authors, series and genres are merged
+          (references re-pointed), not just renamed.</small>
+        <div id="dq-status" class="status hidden"></div>
+        <div id="dq-results"></div>
+      </div>
+      <div class="card">
+        <h2>Enrich metadata</h2>
+        <small>In the <b>Library</b> tab, tap <b>✦</b> on a book to fetch fresh metadata.
+          You'll see a diff here — <b>nothing changes until you apply</b>.</small>
+        <div id="enrich-status" class="status hidden"></div>
+      </div>
+      <div id="enrich-proposals"></div>
+      <div class="card hidden" id="enrich-actions">
+        <label class="chk"><input type="checkbox" id="enrich-all-sel"> select / deselect all</label>
+        <div class="btn-row">
+          <button class="btn primary" id="enrich-apply-selected">Apply selected</button>
+          <button class="btn" id="enrich-apply-all">Apply all</button>
+          <button class="btn" id="enrich-discard">Discard (do nothing)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================ STATS / VALUATION ============================ -->
+    <section id="view-stats" class="view hidden wide">
+      <div class="card"><h2>Overview</h2><div id="dash-totals" class="dash-grid"></div></div>
+      <div class="card"><h2>Value</h2><div id="dash-value"></div>
+        <small>Catalog value = sum of list (cover) prices. Valuation = sum of per-copy estimates
+          (set one on a book's Detail page → 💷 Value, using the valuation engine).</small></div>
+      <div class="card"><h2>Reading</h2><div id="dash-reading"></div></div>
+      <div class="card"><h2>Medium · copy type · condition</h2><div id="dash-bd1"></div></div>
+      <div class="card"><h2>Top genres</h2><div id="dash-genres"></div></div>
+      <div class="card"><h2>Top publishers</h2><div id="dash-pubs"></div></div>
+      <div class="card"><h2>By decade</h2><div id="dash-decades"></div></div>
+      <div class="card"><h2>By area (physical location)</h2><div id="dash-areas"></div></div>
+      <div class="card">
+        <h2>Data dictionary</h2>
+        <small>A per-database, per-column reference for the catalogue: a plain-English
+          description of every field plus profiling metrics — data type, fill rate,
+          distinct-value count (cardinality), min/max and the most frequent values.
+          Exports as a UTF-8 CSV (opens cleanly in Excel/LibreOffice, Greek-safe).</small>
+        <div class="btn-row"><a class="btn primary" id="dd-download"
+          href="/api/stats/data-dictionary.csv">⤓ Download data dictionary (CSV)</a></div>
+        <div id="dd-grid" class="dd-wrap"><div class="hint-row">Loading…</div></div>
+      </div>
+    </section>
+
+    <!-- ==================== E-BOOK METADATA QUALITY ==================== -->
+    <section id="view-metadata" class="view hidden wide">
+      <iframe id="bookren-frame" title="E-book Metadata Quality"></iframe>
+    </section>
+
+    <!-- ============================ ADMIN ============================ -->
+    <section id="view-admin" class="view hidden">
+      <div class="card">
+        <h2>Change my password</h2>
+        <label for="cp-current">Current password</label>
+        <input id="cp-current" type="password" autocomplete="current-password">
+        <label for="cp-new">New password (min 6 chars)</label>
+        <input id="cp-new" type="password" autocomplete="new-password">
+        <div class="btn-row"><button class="btn primary" id="cp-btn">Update password</button></div>
+        <div id="cp-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="appearance-card">
+        <h2>Appearance</h2>
+        <small>Pick a skin — it applies to the whole app and is shared across devices.
+          New skins added to <code>tokens.css</code> + <code>skins.json</code> appear here automatically.</small>
+        <div class="skin-grid">
+          <label for="skin-select" style="margin:0">Skin</label>
+          <select id="skin-select"></select>
+        </div>
+        <div id="skin-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="backup-card">
+        <h2>Backups &amp; export</h2>
+        <small>Files are named <code>&lt;name&gt;-yyyy.mm.dd.hh.mm</code>. Your browser will ask where
+          to save (on supported browsers).</small>
+        <div class="btn-row">
+          <button class="btn" data-bk="/api/export/library.csv" data-name="library">⤓ Library CSV</button>
+          <button class="btn" data-bk="/api/export/wishlist.csv" data-name="wishlist">⤓ Wishlist CSV</button>
+          <button class="btn" data-bk="/api/backup/database.sql" data-name="loa-db">⤓ Database backup (.sql)</button>
+          <button class="btn primary" data-bk="/api/backup/full.zip" data-name="loa-full">⤓ Full backup (.zip)</button>
+        </div>
+        <small>Full ZIP = CSVs + thumbnails + database dump + linking manifest + README —
+          portable to another machine and usable in any app.</small>
+        <div id="backup-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="ebook-card">
+        <h2>E-book folder</h2>
+        <small id="eb-info">Scans your e-book folder, reads each file's embedded metadata
+          (EPUB, PDF, MOBI/AZW3, FB2, comics…) and catalogs it. Re-scanning is safe — files
+          already in the catalog are skipped. Files are read in place; nothing is moved.</small>
+        <label>Folder to scan</label>
+        <div class="search-row">
+          <input type="text" id="eb-dir" placeholder="(none chosen)" readonly>
+          <button class="btn" id="eb-browse">📁 Choose folder…</button>
+        </div>
+        <div id="eb-dir-note" class="muted" style="font-size:.8rem"></div>
+        <label class="check"><input type="checkbox" id="eb-lookup"> Look up missing details online (by ISBN)</label>
+        <div class="btn-row"><button class="btn primary" id="eb-scan">↻ Scan e-book folder</button></div>
+        <div id="eb-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="import-card">
+        <h2>Import from CSV</h2>
+        <small>Upload a CSV with any columns. Rows with an ISBN/ASIN or a title are eligible;
+          pick which to add, choose Library or Wishlist (and a collection), optionally look up
+          ISBNs online to fill metadata.</small>
+        <div class="search-row" style="margin-top:.6rem">
+          <input type="file" id="imp-file" accept=".csv,text/csv">
+          <button class="btn" id="imp-preview">Preview</button>
+        </div>
+        <div class="grid2">
+          <div><label for="imp-dest">Destination</label>
+            <select id="imp-dest"><option value="library">My Library</option><option value="wishlist">Wishlist</option></select></div>
+          <div><label for="imp-collection">Collection</label><select id="imp-collection"></select></div>
+        </div>
+        <label class="chk"><input type="checkbox" id="imp-lookup"> look up ISBNs online to fill metadata</label>
+        <div id="imp-summary" class="hint-row"></div>
+        <div id="imp-rows"></div>
+        <div class="btn-row"><button class="btn primary" id="imp-commit">Import selected</button></div>
+        <div id="imp-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="maps-card">
+        <h2>Library maps (3D)</h2>
+        <div id="maps-list"></div>
+        <label for="map-area" style="margin-top:1rem">Add / replace a map</label>
+        <div class="grid2">
+          <div><input id="map-area" placeholder="area prefix, e.g. Greece"></div>
+          <div><input id="map-name" placeholder="display name, e.g. Greece House"></div>
+          <div><input id="map-file" type="file" accept=".html,text/html"></div>
+          <div><button class="btn primary" id="map-add">Add map</button></div>
+        </div>
+        <small>The area prefix matches the start of your locations: <code>Greece 12</code> → area
+          <code>Greece</code>; <code>UK 33</code> → area <code>UK</code>. Upload that area's
+          standalone 3D-map HTML.</small>
+        <div id="map-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="sources-card">
+        <h2>Enrichment sources</h2>
+        <div id="sources-list"></div>
+        <label for="ns-key" style="margin-top:1rem">Add source</label>
+        <div class="grid2">
+          <div><select id="ns-key"></select></div>
+          <div><button class="btn primary" id="ns-btn">Add</button></div>
+        </div>
+        <small>Only sources with a built-in fetcher actually query the web; others are stored but inert.</small>
+        <div id="ns-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="custom-sources-card">
+        <h2>Custom catalogue sources (SRU)</h2>
+        <small><b>Library of Congress</b> and <b>German DNB</b> are built in (tick-boxes in Find a Match).
+          To add others that speak <b>SRU</b>, paste the SRU search URL with <code>{q}</code> where the
+          search term goes; it then appears as a tick-box in a book's <b>Find a Match</b>. Returns metadata;
+          covers come from OpenLibrary by ISBN when available. Edit/remove any time.<br>
+          <i>British Library has no open SRU (services impaired since its 2023 cyber-incident); the Greek
+          NLG exposes no public SRU — BiblioNet already covers Greek. Add either here if you obtain a
+          working endpoint.</i></small>
+        <div id="custom-sources-list"></div>
+        <label for="cs-name" style="margin-top:1rem">Add a catalogue</label>
+        <div class="grid2">
+          <div><input id="cs-name" placeholder="name, e.g. Library of Congress"></div>
+          <div><button class="btn primary" id="cs-add">Add catalogue</button></div>
+        </div>
+        <input id="cs-url" placeholder="SRU URL template with {q}" style="margin-top:.4rem;font-family:var(--font-meta);font-size:.8rem">
+        <details style="margin-top:.5rem"><summary class="muted" style="cursor:pointer">Ready-to-paste examples</summary>
+          <small>
+            <b>Library of Congress:</b><br>
+            <code>http://lx2.loc.gov:210/lcdb?version=1.1&amp;operation=searchRetrieve&amp;maximumRecords=10&amp;recordSchema=marcxml&amp;query=bath.any={q}</code><br>
+            <b>German National Library (DNB):</b><br>
+            <code>https://services.dnb.de/sru/dnb?version=1.1&amp;operation=searchRetrieve&amp;maximumRecords=10&amp;recordSchema=MARC21-xml&amp;query={q}</code><br>
+            <i>(Other SRU libraries: copy one of these and swap the host/path; keep <code>{q}</code>.)</i>
+          </small>
+        </details>
+        <div id="cs-status" class="status hidden"></div>
+      </div>
+
+      <div class="card hidden" id="admin-card">
+        <h2>Manage users (admin)</h2>
+        <div id="users-list"></div>
+        <label for="nu-name" style="margin-top:1rem">New user</label>
+        <div class="grid2">
+          <div><input id="nu-name" placeholder="username" autocapitalize="none"></div>
+          <div><select id="nu-role"><option value="consumer">consumer</option>
+            <option value="admin">admin</option></select></div>
+          <div><input id="nu-pass" type="password" placeholder="password (≥6)"></div>
+          <div><button class="btn primary" id="nu-btn">Create user</button></div>
+        </div>
+        <div id="nu-status" class="status hidden"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Describe a book (LibraryThing TALPA natural-language discovery) -->
+  <div id="discover-overlay" class="overlay hidden">
+    <div class="fp-modal" style="max-width:680px">
+      <div class="fp-head">
+        <strong>Describe a book — LibraryThing TALPA</strong>
+        <button class="btn" id="discover-close">✕</button>
+      </div>
+      <div class="fp-path">
+        <input type="text" id="discover-query" placeholder="e.g. a whale and a sea captain bent on revenge…">
+        <button class="btn primary" id="discover-search">Search</button>
+      </div>
+      <div id="discover-body" class="fp-body"></div>
+      <div class="fp-foot">
+        <span class="muted" id="discover-foot">Type a description of the book you're thinking of.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BiblioNet match picker (for books with no ISBN) -->
+  <div id="match-overlay" class="overlay hidden">
+    <div class="fp-modal" style="max-width:680px">
+      <div class="fp-head">
+        <strong>Find a Match</strong>
+        <button class="btn" id="match-close">✕</button>
+      </div>
+      <div class="fp-path">
+        <input type="text" id="match-query" placeholder="title and/or author…">
+        <button class="btn primary" id="match-search">Search</button>
+      </div>
+      <div class="match-sources" id="match-sources"></div>
+      <div class="match-sources" id="match-opts">
+        <label class="chk inline src"><input type="checkbox" id="match-update-title" checked> Update title (replace transliteration)</label>
+        <label class="chk inline src"><input type="checkbox" id="match-add-author" checked> Add author's Greek name (keep current)</label>
+      </div>
+      <div class="match-sources" id="match-cover-add" style="display:none">
+        <span class="muted">Cover — add or replace:</span>
+        <label class="btn">⬆ Upload image<input type="file" id="cover-upload" accept="image/*" hidden></label>
+        <label class="btn">📷 Take a photo<input type="file" id="cover-camera" accept="image/*" capture="environment" hidden></label>
+        <span id="cover-add-status" class="muted"></span>
+      </div>
+      <div id="match-body" class="fp-body"></div>
+      <div class="fp-foot">
+        <span class="muted">Pick the correct edition — empty fields, the cover and a missing ISBN are filled; title/author per the options above.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- reusable server-side folder picker -->
+  <div id="fp-overlay" class="overlay hidden">
+    <div class="fp-modal">
+      <div class="fp-head">
+        <strong>Choose a folder</strong>
+        <button class="btn" id="fp-close">✕</button>
+      </div>
+      <div class="fp-path"><button class="btn" id="fp-up">⬆ Up</button>
+        <code id="fp-cur">/</code></div>
+      <div id="fp-body" class="fp-body"></div>
+      <div class="fp-foot">
+        <span class="muted" id="fp-hint">Pick a folder, then “Use this folder”.</span>
+        <button class="btn primary" id="fp-use" disabled>✓ Use this folder</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js" defer></script>
+</body>
+</html>

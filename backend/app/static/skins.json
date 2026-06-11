@@ -1,0 +1,14 @@
+[
+  { "id": "cupertino",          "name": "Cupertino" },
+  { "id": "reading-room",       "name": "Reading Room" },
+  { "id": "midnight",           "name": "Midnight" },
+  { "id": "neon-noir",          "name": "Neon Noir" },
+  { "id": "acid-terminal",      "name": "Acid Terminal" },
+  { "id": "night-city",         "name": "Night City" },
+  { "id": "blade-rain",         "name": "BR · 2019 Rain" },
+  { "id": "blade-tyrell",       "name": "BR · Tyrell Corp" },
+  { "id": "blade-esper",        "name": "BR · Esper VK" },
+  { "id": "neuro-matrix",       "name": "NM · Cyberspace" },
+  { "id": "neuro-dead-channel", "name": "NM · Dead Channel" },
+  { "id": "neuro-chiba",        "name": "NM · Chiba City" }
+]
