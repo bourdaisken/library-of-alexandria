@@ -35,7 +35,6 @@ services:
       PYTHONUTF8: "1"
       LANG: C.UTF-8
     volumes:
-      - ./backend:/app
       - ./data:/data:ro           # optional: put a CSV/backup here to import it
       # Your e-book library, mounted READ-WRITE so the "E-book Metadata Quality" tab can
       # rename files (and re-point the catalog). The catalog scanner itself only reads.
@@ -43,8 +42,6 @@ services:
       - type: bind
         source: ${MEDIA_HOST_DIR:-./ebooks}
         target: /media
-        bind:
-          propagation: rslave
     depends_on:
       db:
         condition: service_healthy
