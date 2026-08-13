@@ -17,7 +17,8 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-RUN useradd -m appuser
+RUN useradd -m appuser \
+    && chown -R appuser:appuser /app/app/static/maps
 USER appuser
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
